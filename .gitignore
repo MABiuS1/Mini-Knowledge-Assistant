@@ -1,0 +1,29 @@
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+.next/
+out/
+dist/
+build/
+tmp/
+coverage/
+
+# Go
+*.test
+*.out
+
+# Runtime data
+data/uploads/*
+!data/uploads/.gitkeep
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
