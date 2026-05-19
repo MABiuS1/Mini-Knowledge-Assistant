@@ -7,7 +7,7 @@ import (
 	"github.com/mabius/knowledge-assistant/backend/internal/config"
 )
 
-func registerRoutes(app *fiber.App, cfg config.Config) {
+func registerRoutes(app *fiber.App, cfg config.Config, deps Dependencies) {
 	api := app.Group("/api")
 
 	api.Get("/health", func(c *fiber.Ctx) error {
@@ -17,4 +17,11 @@ func registerRoutes(app *fiber.App, cfg config.Config) {
 			"time":   time.Now().UTC().Format(time.RFC3339),
 		})
 	})
+
+	authHandler := authHandler{cfg: cfg, service: deps.AuthService}
+	api.Post("/auth/login", authHandler.login)
+	api.Post("/auth/logout", authHandler.logout)
+
+	protected := api.Group("", authMiddleware(deps.AuthService))
+	protected.Get("/me", authHandler.me)
 }

@@ -23,3 +23,11 @@
 **AI Response:** Proposed one initialization migration that enables pgvector and pgcrypto, creates the core application tables, adds indexes, and seeds the mock admin account with a bcrypt password hash.
 
 **My Adjustment:** Kept the schema minimal for the assessment scope and used one database service for both relational data and vector search to keep Docker Compose simple.
+
+## Session 4: Backend authentication
+
+**Prompt:** "Implement backend login/logout/me routes with protected route middleware and unit tests."
+
+**AI Response:** Added a session-based auth service, PostgreSQL repository, Fiber handlers, auth middleware, and route tests using a fake auth service.
+
+**My Adjustment:** Used httpOnly cookie sessions instead of exposing JWTs to the browser, while still supporting Bearer tokens for easier API testing.
