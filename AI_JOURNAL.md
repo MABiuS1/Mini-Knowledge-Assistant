@@ -16,3 +16,10 @@
 
 **My Adjustment:** Kept the first commit intentionally small with no feature implementation, so later commits can map cleanly to the assessment plan.
 
+## Session 3: Database migration design
+
+**Prompt:** "Add the PostgreSQL + pgvector migration step for users, sessions, documents, chunks, conversations, messages, usage events, and a seeded admin user."
+
+**AI Response:** Proposed one initialization migration that enables pgvector and pgcrypto, creates the core application tables, adds indexes, and seeds the mock admin account with a bcrypt password hash.
+
+**My Adjustment:** Kept the schema minimal for the assessment scope and used one database service for both relational data and vector search to keep Docker Compose simple.

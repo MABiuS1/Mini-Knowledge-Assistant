@@ -20,7 +20,8 @@ services:
     build:
       context: ./backend
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgres://knowledge:knowledge@postgres:5432/knowledge_assistant?sslmode=disable}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
@@ -45,4 +46,3 @@ services:
 
 volumes:
   postgres_data:
-
