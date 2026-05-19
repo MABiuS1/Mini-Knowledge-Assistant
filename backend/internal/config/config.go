@@ -14,6 +14,8 @@ type Config struct {
 	UploadDir      string
 	MaxUploadBytes int64
 	RequestTimeout time.Duration
+	SessionTTL     time.Duration
+	CookieSecure   bool
 }
 
 func Load() Config {
@@ -25,6 +27,8 @@ func Load() Config {
 		UploadDir:      getEnv("UPLOAD_DIR", "./data/uploads"),
 		MaxUploadBytes: getEnvInt64("MAX_UPLOAD_BYTES", 10*1024*1024),
 		RequestTimeout: time.Duration(getEnvInt64("REQUEST_TIMEOUT_SECONDS", 30)) * time.Second,
+		SessionTTL:     time.Duration(getEnvInt64("SESSION_TTL_HOURS", 24)) * time.Hour,
+		CookieSecure:   getEnv("APP_ENV", "development") == "production",
 	}
 }
 
