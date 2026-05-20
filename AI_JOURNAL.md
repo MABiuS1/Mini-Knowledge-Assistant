@@ -103,3 +103,11 @@
 **AI Response:** Added a protected documents page with multipart upload, client-side PDF/TXT and size validation, upload/loading/error states, document list rendering, and a backend `GET /api/documents` endpoint.
 
 **My Adjustment:** Added `NEXT_PUBLIC_MAX_UPLOAD_BYTES` so frontend validation follows environment configuration instead of duplicating the backend limit in code.
+
+## Session 14: Chat interface
+
+**Prompt:** "Implement the next step: frontend chat interface."
+
+**AI Response:** Replaced the chat placeholder with a protected chat page that loads documents, supports document selection, sends messages to `/api/chat`, renders user and assistant messages, and displays token usage per response and total session usage.
+
+**My Adjustment:** Kept markdown and citation rendering minimal because the plan has a dedicated next step for markdown and citations.

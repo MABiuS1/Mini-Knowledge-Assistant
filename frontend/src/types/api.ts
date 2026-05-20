@@ -31,6 +31,36 @@ export type DocumentResponse = {
   document: Document;
 };
 
+export type Usage = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+};
+
+export type Citation = {
+  documentId: string;
+  fileName: string;
+  chunkId: string;
+  chunkIndex: number;
+  snippet: string;
+  similarity: number;
+};
+
+export type ChatRequest = {
+  message: string;
+  conversationId?: string;
+  documentIds?: string[];
+};
+
+export type ChatResponse = {
+  answer: string;
+  conversationId: string;
+  usage: Usage;
+  sessionTotalUsage: Usage;
+  assistantMessageId: string;
+  citations: Citation[];
+};
+
 export type ApiError = {
   error: {
     message: string;
