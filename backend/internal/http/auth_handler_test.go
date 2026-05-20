@@ -148,6 +148,33 @@ func TestMeRouteReturnsCurrentUser(t *testing.T) {
 	}
 }
 
+func TestLogoutRouteClearsSession(t *testing.T) {
+	authService := &fakeAuthService{}
+	app := NewServerWithDependencies(testConfig(), Dependencies{
+		AuthService: authService,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer session-token")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	if !authService.logoutCalled {
+		t.Fatal("expected logout to be called")
+	}
+
+	if cookie := resp.Header.Get("Set-Cookie"); !strings.Contains(cookie, sessionCookieName+"=;") {
+		t.Fatalf("expected clearing cookie, got %q", cookie)
+	}
+}
+
 func TestAuthMiddlewareMapsServiceErrorToUnauthorized(t *testing.T) {
 	app := NewServerWithDependencies(testConfig(), Dependencies{
 		AuthService: &fakeAuthService{authenticateErr: errors.New("store down")},

@@ -122,6 +122,34 @@ func TestAuthenticateRequiresValidSession(t *testing.T) {
 	}
 }
 
+func TestAuthenticateRejectsEmptyToken(t *testing.T) {
+	service := NewService(newMemoryStore(t), time.Hour)
+
+	_, err := service.Authenticate(context.Background(), " \n\t ")
+	if !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("expected unauthenticated, got %v", err)
+	}
+}
+
+func TestLogoutDeletesSession(t *testing.T) {
+	store := newMemoryStore(t)
+	service := NewService(store, time.Hour)
+
+	result, err := service.Login(context.Background(), "admin", "admin123")
+	if err != nil {
+		t.Fatalf("login: %v", err)
+	}
+
+	if err := service.Logout(context.Background(), result.Token); err != nil {
+		t.Fatalf("logout: %v", err)
+	}
+
+	_, err = service.Authenticate(context.Background(), result.Token)
+	if !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("expected unauthenticated after logout, got %v", err)
+	}
+}
+
 type failingStore struct {
 	err error
 }

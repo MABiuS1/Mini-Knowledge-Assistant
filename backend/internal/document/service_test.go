@@ -37,6 +37,20 @@ func (f *fakeStore) ListDocuments(context.Context, string) ([]Document, error) {
 	return []Document{}, nil
 }
 
+type fakeIndexer struct {
+	calledWithLimit int
+	indexed         int
+	err             error
+}
+
+func (f *fakeIndexer) IndexMissingEmbeddings(_ context.Context, limit int) (int, error) {
+	f.calledWithLimit = limit
+	if f.err != nil {
+		return 0, f.err
+	}
+	return f.indexed, nil
+}
+
 func TestUploadRejectsInvalidType(t *testing.T) {
 	service := NewService(&fakeStore{}, nil, t.TempDir(), 1024)
 	file := newFileHeader(t, "script.exe", "application/octet-stream", []byte("MZ executable"))
@@ -129,6 +143,22 @@ func TestUploadSavesFileAndMetadata(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(uploadDir, store.params.StoredName)); err != nil {
 		t.Fatalf("expected uploaded file to exist: %v", err)
+	}
+}
+
+func TestUploadIndexesSavedChunks(t *testing.T) {
+	store := &fakeStore{}
+	indexer := &fakeIndexer{}
+	service := NewService(store, indexer, t.TempDir(), 1024)
+	file := newFileHeader(t, "notes.txt", "text/plain", []byte("one two three four five six"))
+
+	doc, err := service.Upload(context.Background(), "user-1", file)
+	if err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+
+	if indexer.calledWithLimit != doc.ChunkCount {
+		t.Fatalf("expected indexer limit %d, got %d", doc.ChunkCount, indexer.calledWithLimit)
 	}
 }
 

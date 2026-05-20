@@ -135,3 +135,11 @@
 **AI Response:** Added a protected SSE chat endpoint and updated the frontend chat client to read stream events, incrementally update the assistant message, and keep the existing non-streaming chat request as fallback.
 
 **My Adjustment:** Reused the existing chat service so persistence, token usage, citations, and non-streaming behavior stay consistent instead of introducing a separate streaming-only save path.
+
+## Session 18: Backend test coverage
+
+**Prompt:** "Implement the next step: add backend unit and integration coverage."
+
+**AI Response:** Added focused tests for auth logout/session behavior, upload-time embedding indexing, chat conversation reuse and context injection, and RAG error handling with mocked embeddings.
+
+**My Adjustment:** Prioritized high-risk service boundaries and existing fakes instead of adding broad end-to-end tests that would require real provider credentials.
