@@ -33,7 +33,7 @@ func (f *fakeStore) CreateDocument(_ context.Context, params CreateDocumentParam
 }
 
 func TestUploadRejectsInvalidType(t *testing.T) {
-	service := NewService(&fakeStore{}, t.TempDir(), 1024)
+	service := NewService(&fakeStore{}, nil, t.TempDir(), 1024)
 	file := newFileHeader(t, "script.exe", "application/octet-stream", []byte("MZ executable"))
 
 	_, err := service.Upload(context.Background(), "user-1", file)
@@ -43,7 +43,7 @@ func TestUploadRejectsInvalidType(t *testing.T) {
 }
 
 func TestUploadRejectsSpoofedPDF(t *testing.T) {
-	service := NewService(&fakeStore{}, t.TempDir(), 1024)
+	service := NewService(&fakeStore{}, nil, t.TempDir(), 1024)
 	file := newFileHeader(t, "document.pdf", "application/pdf", []byte("not really a pdf"))
 
 	_, err := service.Upload(context.Background(), "user-1", file)
@@ -66,7 +66,7 @@ func TestUploadAcceptsPDFWhenMultipartHeaderIsOctetStream(t *testing.T) {
 }
 
 func TestUploadRejectsOversizeFile(t *testing.T) {
-	service := NewService(&fakeStore{}, t.TempDir(), 2)
+	service := NewService(&fakeStore{}, nil, t.TempDir(), 2)
 	file := newFileHeader(t, "notes.txt", "text/plain", []byte("too large"))
 
 	_, err := service.Upload(context.Background(), "user-1", file)
@@ -76,7 +76,7 @@ func TestUploadRejectsOversizeFile(t *testing.T) {
 }
 
 func TestUploadRejectsUnsafeFileName(t *testing.T) {
-	service := NewService(&fakeStore{}, t.TempDir(), 1024)
+	service := NewService(&fakeStore{}, nil, t.TempDir(), 1024)
 	file := &multipart.FileHeader{
 		Filename: "../notes.txt",
 		Header: textproto.MIMEHeader{
@@ -94,7 +94,7 @@ func TestUploadRejectsUnsafeFileName(t *testing.T) {
 func TestUploadSavesFileAndMetadata(t *testing.T) {
 	store := &fakeStore{}
 	uploadDir := t.TempDir()
-	service := NewService(store, uploadDir, 1024)
+	service := NewService(store, nil, uploadDir, 1024)
 	file := newFileHeader(t, "notes.txt", "text/plain", []byte("hello"))
 
 	doc, err := service.Upload(context.Background(), "user-1", file)

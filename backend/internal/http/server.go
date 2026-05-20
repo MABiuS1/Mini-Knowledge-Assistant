@@ -13,6 +13,7 @@ import (
 	"github.com/mabius/knowledge-assistant/backend/internal/chat"
 	"github.com/mabius/knowledge-assistant/backend/internal/config"
 	"github.com/mabius/knowledge-assistant/backend/internal/document"
+	"github.com/mabius/knowledge-assistant/backend/internal/rag"
 	"github.com/mabius/knowledge-assistant/backend/internal/repository"
 )
 
@@ -25,7 +26,10 @@ func NewServer(cfg config.Config) *fiber.App {
 	authStore := repository.NewAuthStore(db)
 	authService := authAdapter{service: auth.NewService(authStore, cfg.SessionTTL)}
 	documentStore := repository.NewDocumentStore(db)
-	documentService := document.NewService(documentStore, cfg.UploadDir, cfg.MaxUploadBytes)
+	ragStore := repository.NewRAGStore(db)
+	embedder := rag.NewGeminiEmbedder(cfg.EmbeddingBaseURL, cfg.EmbeddingAPIKey, cfg.EmbeddingModel, cfg.EmbeddingDimensions, cfg.RequestTimeout)
+	ragService := rag.NewService(ragStore, embedder)
+	documentService := document.NewService(documentStore, ragService, cfg.UploadDir, cfg.MaxUploadBytes)
 	chatStore := repository.NewChatStore(db)
 	aiClient, err := newAIClient(cfg)
 	if err != nil {
@@ -37,6 +41,7 @@ func NewServer(cfg config.Config) *fiber.App {
 		AuthService:     authService,
 		DocumentService: documentService,
 		ChatService:     chatService,
+		RAGService:      ragService,
 	})
 }
 
@@ -44,6 +49,7 @@ type Dependencies struct {
 	AuthService     AuthService
 	DocumentService DocumentService
 	ChatService     ChatService
+	RAGService      RAGService
 }
 
 func NewServerWithDependencies(cfg config.Config, deps Dependencies) *fiber.App {

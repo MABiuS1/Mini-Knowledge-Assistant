@@ -29,6 +29,10 @@ type Store interface {
 	CreateDocument(ctx context.Context, params CreateDocumentParams, chunks []Chunk) (Document, error)
 }
 
+type EmbeddingIndexer interface {
+	IndexMissingEmbeddings(ctx context.Context, limit int) (int, error)
+}
+
 type CreateDocumentParams struct {
 	UserID       string
 	OriginalName string
@@ -56,17 +60,19 @@ type Chunk struct {
 
 type Service struct {
 	store          Store
+	indexer        EmbeddingIndexer
 	uploadDir      string
 	maxUploadBytes int64
 }
 
-func NewService(store Store, uploadDir string, maxUploadBytes int64) *Service {
+func NewService(store Store, indexer EmbeddingIndexer, uploadDir string, maxUploadBytes int64) *Service {
 	if maxUploadBytes <= 0 {
 		maxUploadBytes = 10 * 1024 * 1024
 	}
 
 	return &Service{
 		store:          store,
+		indexer:        indexer,
 		uploadDir:      uploadDir,
 		maxUploadBytes: maxUploadBytes,
 	}
@@ -130,6 +136,12 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 	if err != nil {
 		_ = os.Remove(destinationPath)
 		return Document{}, err
+	}
+
+	if s.indexer != nil {
+		if _, err := s.indexer.IndexMissingEmbeddings(ctx, len(chunks)); err != nil {
+			return Document{}, err
+		}
 	}
 
 	return doc, nil
