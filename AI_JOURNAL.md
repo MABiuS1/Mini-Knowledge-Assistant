@@ -143,3 +143,11 @@
 **AI Response:** Added focused tests for auth logout/session behavior, upload-time embedding indexing, chat conversation reuse and context injection, and RAG error handling with mocked embeddings.
 
 **My Adjustment:** Prioritized high-risk service boundaries and existing fakes instead of adding broad end-to-end tests that would require real provider credentials.
+
+## Session 19: Docker healthchecks
+
+**Prompt:** "Implement the next step: finalize Docker Compose healthchecks."
+
+**AI Response:** Added service healthchecks for backend and frontend, made frontend wait for a healthy backend, aligned the backend Docker image with the Go version, and tightened Docker build ignores.
+
+**My Adjustment:** Verified Compose syntax without printing environment values and deferred full `docker compose up --build` because Docker Desktop was not running in the local environment.

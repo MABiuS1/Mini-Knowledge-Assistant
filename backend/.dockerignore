@@ -1,5 +1,7 @@
 .git
+data/uploads/*
 tmp/
 *.test
 *.out
-
+.env
+.env.*
