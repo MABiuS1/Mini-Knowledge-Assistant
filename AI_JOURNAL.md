@@ -95,3 +95,11 @@
 **AI Response:** Updated the chat service to retrieve chunks when document IDs are provided, inject document context into the AI prompt, and return citation metadata with snippets.
 
 **My Adjustment:** Kept the RAG retrieval interface provider-agnostic and left streaming for a later step so citation behavior stays easy to test.
+
+## Session 13: Upload and document list UI
+
+**Prompt:** "Implement the next step: frontend upload and document list pages."
+
+**AI Response:** Added a protected documents page with multipart upload, client-side PDF/TXT and size validation, upload/loading/error states, document list rendering, and a backend `GET /api/documents` endpoint.
+
+**My Adjustment:** Added `NEXT_PUBLIC_MAX_UPLOAD_BYTES` so frontend validation follows environment configuration instead of duplicating the backend limit in code.

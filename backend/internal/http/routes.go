@@ -26,6 +26,7 @@ func registerRoutes(app *fiber.App, cfg config.Config, deps Dependencies) {
 	protected.Get("/me", authHandler.me)
 
 	documentHandler := documentHandler{service: deps.DocumentService}
+	protected.Get("/documents", documentHandler.list)
 	protected.Post("/documents/upload", documentHandler.upload)
 
 	chatHandler := chatHandler{service: deps.ChatService}

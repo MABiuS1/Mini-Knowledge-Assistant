@@ -28,6 +28,7 @@ var (
 
 type Store interface {
 	CreateDocument(ctx context.Context, params CreateDocumentParams, chunks []Chunk) (Document, error)
+	ListDocuments(ctx context.Context, userID string) ([]Document, error)
 }
 
 type EmbeddingIndexer interface {
@@ -146,6 +147,10 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 	}
 
 	return doc, nil
+}
+
+func (s *Service) List(ctx context.Context, userID string) ([]Document, error) {
+	return s.store.ListDocuments(ctx, userID)
 }
 
 func extractText(path string, mimeType string) (string, error) {
