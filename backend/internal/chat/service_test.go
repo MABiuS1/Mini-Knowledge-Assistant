@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"unicode/utf8"
 )
@@ -12,9 +13,11 @@ type memoryStore struct {
 	lastTitle      string
 	messages       []Message
 	usage          Usage
+	createCount    int
 }
 
 func (m *memoryStore) CreateConversation(_ context.Context, _ string, title string) (string, error) {
+	m.createCount++
 	m.conversationID = "conversation-1"
 	m.lastTitle = title
 	return m.conversationID, nil
@@ -75,13 +78,17 @@ func (m *memoryStore) SumConversationUsage(context.Context, string) (Usage, erro
 }
 
 type fakeClient struct {
-	completion Completion
-	err        error
+	completion   Completion
+	err          error
+	seenMessages *[]Message
 }
 
-func (f fakeClient) Complete(context.Context, []Message) (Completion, error) {
+func (f fakeClient) Complete(_ context.Context, messages []Message) (Completion, error) {
 	if f.err != nil {
 		return Completion{}, f.err
+	}
+	if f.seenMessages != nil {
+		*f.seenMessages = append((*f.seenMessages)[:0], messages...)
 	}
 	return f.completion, nil
 }
@@ -122,6 +129,34 @@ func TestSendCreatesConversationAndTracksUsage(t *testing.T) {
 
 	if response.SessionTotalUsage.TotalTokens != 14 {
 		t.Fatalf("expected session total tokens, got %d", response.SessionTotalUsage.TotalTokens)
+	}
+}
+
+func TestSendUsesExistingConversationWithoutCreatingNewOne(t *testing.T) {
+	store := &memoryStore{conversationID: "conversation-1"}
+	service := NewService(store, fakeClient{
+		completion: Completion{
+			Content: "Follow-up answer",
+			Model:   "test-model",
+			Usage:   Usage{PromptTokens: 2, CompletionTokens: 3, TotalTokens: 5},
+		},
+	}, nil)
+
+	response, err := service.Send(context.Background(), Request{
+		UserID:         "user-1",
+		ConversationID: "conversation-1",
+		Message:        "Follow up",
+	})
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+
+	if response.ConversationID != "conversation-1" {
+		t.Fatalf("expected existing conversation id, got %q", response.ConversationID)
+	}
+
+	if store.createCount != 0 {
+		t.Fatalf("expected no new conversation, got %d creates", store.createCount)
 	}
 }
 
@@ -216,6 +251,51 @@ func TestSendWithDocumentContextReturnsCitations(t *testing.T) {
 
 	if response.Citations[0].FileName != "notes.txt" {
 		t.Fatalf("expected citation file name, got %q", response.Citations[0].FileName)
+	}
+}
+
+func TestSendInjectsRetrievedDocumentContext(t *testing.T) {
+	seenMessages := []Message{}
+	store := &memoryStore{}
+	service := NewService(store, fakeClient{
+		completion: Completion{
+			Content: "The document says hello.",
+			Model:   "test-model",
+			Usage:   Usage{PromptTokens: 10, CompletionTokens: 5, TotalTokens: 15},
+		},
+		seenMessages: &seenMessages,
+	}, fakeRetriever{
+		chunks: []RetrievedChunk{
+			{
+				DocumentID: "document-1",
+				FileName:   "notes.txt",
+				ChunkID:    "chunk-1",
+				ChunkIndex: 0,
+				Content:    "hello from the uploaded document",
+				Similarity: 0.91,
+			},
+		},
+	})
+
+	_, err := service.Send(context.Background(), Request{
+		UserID:      "user-1",
+		Message:     "What does the document say?",
+		DocumentIDs: []string{"document-1"},
+	})
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+
+	foundContext := false
+	for _, message := range seenMessages {
+		if message.Role == RoleSystem && strings.Contains(message.Content, "hello from the uploaded document") {
+			foundContext = true
+			break
+		}
+	}
+
+	if !foundContext {
+		t.Fatalf("expected document context in AI messages, got %#v", seenMessages)
 	}
 }
 
