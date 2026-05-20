@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	golang.org/x/crypto v0.31.0
+	rsc.io/pdf v0.1.1
 )
 
 require (

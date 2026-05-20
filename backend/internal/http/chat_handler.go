@@ -18,8 +18,9 @@ type chatHandler struct {
 }
 
 type chatRequest struct {
-	Message        string `json:"message"`
-	ConversationID string `json:"conversationId"`
+	Message        string   `json:"message"`
+	ConversationID string   `json:"conversationId"`
+	DocumentIDs    []string `json:"documentIds"`
 }
 
 func (h chatHandler) send(c *fiber.Ctx) error {
@@ -37,6 +38,7 @@ func (h chatHandler) send(c *fiber.Ctx) error {
 		UserID:         user.ID,
 		ConversationID: strings.TrimSpace(req.ConversationID),
 		Message:        req.Message,
+		DocumentIDs:    req.DocumentIDs,
 	})
 	if err != nil {
 		return chatSendError(err)
