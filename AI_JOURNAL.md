@@ -63,3 +63,19 @@
 **AI Response:** Added TXT/PDF text extraction, whitespace normalization, overlapping word chunks, transactional document + chunk persistence, and tests for chunk ordering and empty content.
 
 **My Adjustment:** Kept embeddings out of this step so parsing/chunking can be verified independently before RAG retrieval is added.
+
+## Session 9: Basic AI chat and token usage
+
+**Prompt:** "Implement a protected basic chat endpoint that calls OpenAI, saves messages, and returns token usage."
+
+**AI Response:** Added a chat service, OpenAI Chat Completions HTTP client, PostgreSQL conversation/message/usage persistence, protected `/api/chat` route, and tests with fake AI and HTTP servers.
+
+**My Adjustment:** Used non-streaming Chat Completions first because the response includes prompt/completion/total token usage directly; streaming is left for a later dedicated feature step.
+
+## Session 10: Gemini provider support
+
+**Prompt:** "Switch the AI provider to Gemini because I have quota there, while keeping OpenAI configurable."
+
+**AI Response:** Added `AI_PROVIDER` config, a Gemini generateContent client, Gemini token usage mapping, provider selection in the server, and tests for Gemini success/error responses.
+
+**My Adjustment:** Kept the chat service provider-agnostic so `/api/chat` response shape and database token tracking do not change when switching between OpenAI and Gemini.

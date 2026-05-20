@@ -19,11 +19,6 @@ services:
   backend:
     build:
       context: ./backend
-    env_file:
-      - path: .env.example
-        required: true
-      - path: .env
-        required: false
     environment:
       APP_ENV: ${APP_ENV:?APP_ENV is required}
       PORT: ${PORT:?PORT is required}
@@ -33,6 +28,10 @@ services:
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:?MAX_UPLOAD_BYTES is required}
       REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:?REQUEST_TIMEOUT_SECONDS is required}
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:?SESSION_TTL_HOURS is required}
+      AI_PROVIDER: ${AI_PROVIDER:?AI_PROVIDER is required}
+      AI_BASE_URL: ${AI_BASE_URL:?AI_BASE_URL is required}
+      AI_API_KEY: ${AI_API_KEY:?AI_API_KEY is required}
+      AI_MODEL: ${AI_MODEL:?AI_MODEL is required}
     ports:
       - "${PORT:?PORT is required}:${PORT:?PORT is required}"
     volumes:
