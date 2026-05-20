@@ -11,6 +11,7 @@ import (
 
 type DocumentService interface {
 	Upload(ctx context.Context, userID string, fileHeader *multipart.FileHeader) (document.Document, error)
+	List(ctx context.Context, userID string) ([]document.Document, error)
 }
 
 type documentHandler struct {
@@ -35,6 +36,22 @@ func (h documentHandler) upload(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"document": doc,
+	})
+}
+
+func (h documentHandler) list(c *fiber.Ctx) error {
+	user, ok := currentUser(c)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthenticated")
+	}
+
+	documents, err := h.service.List(c.UserContext(), user.ID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"documents": documents,
 	})
 }
 

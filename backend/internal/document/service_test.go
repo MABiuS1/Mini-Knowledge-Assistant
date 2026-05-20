@@ -33,6 +33,10 @@ func (f *fakeStore) CreateDocument(_ context.Context, params CreateDocumentParam
 	}, nil
 }
 
+func (f *fakeStore) ListDocuments(context.Context, string) ([]Document, error) {
+	return []Document{}, nil
+}
+
 func TestUploadRejectsInvalidType(t *testing.T) {
 	service := NewService(&fakeStore{}, nil, t.TempDir(), 1024)
 	file := newFileHeader(t, "script.exe", "application/octet-stream", []byte("MZ executable"))

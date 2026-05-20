@@ -7,7 +7,7 @@ import { useAuth } from "@/components/auth-provider";
 
 const navItems = [
   { href: "/chat", label: "Chat" },
-  { href: "/upload", label: "Upload" },
+  { href: "/upload", label: "Documents" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -73,4 +73,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </main>
   );
 }
-

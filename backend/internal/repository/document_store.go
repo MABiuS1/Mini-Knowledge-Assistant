@@ -63,3 +63,36 @@ func (s *DocumentStore) CreateDocument(ctx context.Context, params document.Crea
 
 	return doc, nil
 }
+
+func (s *DocumentStore) ListDocuments(ctx context.Context, userID string) ([]document.Document, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id::text, original_name, stored_name, mime_type, size_bytes, status, chunk_count, created_at
+		FROM documents
+		WHERE user_id = $1::uuid
+		ORDER BY created_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	documents := []document.Document{}
+	for rows.Next() {
+		var doc document.Document
+		if err := rows.Scan(
+			&doc.ID,
+			&doc.OriginalName,
+			&doc.StoredName,
+			&doc.MimeType,
+			&doc.SizeBytes,
+			&doc.Status,
+			&doc.ChunkCount,
+			&doc.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		documents = append(documents, doc)
+	}
+
+	return documents, rows.Err()
+}

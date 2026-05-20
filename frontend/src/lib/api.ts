@@ -29,7 +29,26 @@ export async function apiRequest<T>(
   return (await response.json()) as T;
 }
 
-function apiURL(): string {
+export async function apiFormRequest<T>(
+  path: string,
+  formData: FormData,
+  options: Omit<RequestInit, "body"> = {},
+): Promise<T> {
+  const response = await fetch(`${apiURL()}${path}`, {
+    ...options,
+    body: formData,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message);
+  }
+
+  return (await response.json()) as T;
+}
+
+export function apiURL(): string {
   const value = process.env.NEXT_PUBLIC_API_URL;
   if (!value) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured");
