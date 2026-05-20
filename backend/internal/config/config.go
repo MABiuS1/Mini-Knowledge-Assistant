@@ -14,6 +14,10 @@ type Config struct {
 	DatabaseURL    string
 	UploadDir      string
 	MaxUploadBytes int64
+	AIProvider     string
+	AIBaseURL      string
+	AIAPIKey       string
+	AIModel        string
 	RequestTimeout time.Duration
 	SessionTTL     time.Duration
 	CookieSecure   bool
@@ -29,6 +33,10 @@ func Load() Config {
 		DatabaseURL:    mustGetEnv("DATABASE_URL"),
 		UploadDir:      mustGetEnv("UPLOAD_DIR"),
 		MaxUploadBytes: mustGetEnvInt64("MAX_UPLOAD_BYTES"),
+		AIProvider:     mustGetEnv("AI_PROVIDER"),
+		AIBaseURL:      mustGetEnv("AI_BASE_URL"),
+		AIAPIKey:       mustGetEnv("AI_API_KEY"),
+		AIModel:        mustGetEnv("AI_MODEL"),
 		RequestTimeout: time.Duration(mustGetEnvInt64("REQUEST_TIMEOUT_SECONDS")) * time.Second,
 		SessionTTL:     time.Duration(mustGetEnvInt64("SESSION_TTL_HOURS")) * time.Hour,
 		CookieSecure:   appEnv == "production",
