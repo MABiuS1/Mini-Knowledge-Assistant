@@ -2,16 +2,16 @@ services:
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-knowledge}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-knowledge}
-      POSTGRES_DB: ${POSTGRES_DB:-knowledge_assistant}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     ports:
-      - "${POSTGRES_PORT:-15432}:5432"
+      - "${POSTGRES_PORT:?POSTGRES_PORT is required}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-knowledge} -d ${POSTGRES_DB:-knowledge_assistant}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,14 +20,21 @@ services:
     build:
       context: ./backend
     env_file:
+      - path: .env.example
+        required: true
       - path: .env
         required: false
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgres://knowledge:knowledge@postgres:5432/knowledge_assistant?sslmode=disable}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      UPLOAD_DIR: /app/data/uploads
+      APP_ENV: ${APP_ENV:?APP_ENV is required}
+      PORT: ${PORT:?PORT is required}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      UPLOAD_DIR: ${UPLOAD_DIR:?UPLOAD_DIR is required}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:?MAX_UPLOAD_BYTES is required}
+      REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:?REQUEST_TIMEOUT_SECONDS is required}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:?SESSION_TTL_HOURS is required}
     ports:
-      - "8080:8080"
+      - "${PORT:?PORT is required}:${PORT:?PORT is required}"
     volumes:
       - ./data/uploads:/app/data/uploads
     depends_on:
@@ -38,9 +45,9 @@ services:
     build:
       context: ./frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${BACKEND_URL:-http://localhost:8080}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:?FRONTEND_PORT is required}:3000"
     depends_on:
       - backend
 

@@ -14,17 +14,20 @@ import (
 
 type fakeStore struct {
 	params CreateDocumentParams
+	chunks []Chunk
 }
 
-func (f *fakeStore) CreateDocument(_ context.Context, params CreateDocumentParams) (Document, error) {
+func (f *fakeStore) CreateDocument(_ context.Context, params CreateDocumentParams, chunks []Chunk) (Document, error) {
 	f.params = params
+	f.chunks = chunks
 	return Document{
 		ID:           "document-1",
 		OriginalName: params.OriginalName,
 		StoredName:   params.StoredName,
 		MimeType:     params.MimeType,
 		SizeBytes:    params.SizeBytes,
-		Status:       "processing",
+		Status:       "ready",
+		ChunkCount:   len(chunks),
 		CreatedAt:    time.Now().UTC(),
 	}, nil
 }
@@ -50,17 +53,15 @@ func TestUploadRejectsSpoofedPDF(t *testing.T) {
 }
 
 func TestUploadAcceptsPDFWhenMultipartHeaderIsOctetStream(t *testing.T) {
-	store := &fakeStore{}
-	service := NewService(store, t.TempDir(), 1024)
 	file := newFileHeader(t, "document.pdf", "application/octet-stream", []byte("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n"))
 
-	_, err := service.Upload(context.Background(), "user-1", file)
+	mimeType, err := validateFile(file, 1024)
 	if err != nil {
-		t.Fatalf("upload pdf with octet-stream header: %v", err)
+		t.Fatalf("validate pdf with octet-stream header: %v", err)
 	}
 
-	if store.params.MimeType != "application/pdf" {
-		t.Fatalf("expected detected pdf mime type, got %q", store.params.MimeType)
+	if mimeType != "application/pdf" {
+		t.Fatalf("expected detected pdf mime type, got %q", mimeType)
 	}
 }
 
@@ -113,8 +114,50 @@ func TestUploadSavesFileAndMetadata(t *testing.T) {
 		t.Fatalf("expected safe stored txt name, got %q", store.params.StoredName)
 	}
 
+	if doc.ChunkCount != 1 {
+		t.Fatalf("expected one chunk, got %d", doc.ChunkCount)
+	}
+
+	if len(store.chunks) != 1 || store.chunks[0].Content != "hello" {
+		t.Fatalf("expected uploaded text to be chunked, got %#v", store.chunks)
+	}
+
 	if _, err := os.Stat(filepath.Join(uploadDir, store.params.StoredName)); err != nil {
 		t.Fatalf("expected uploaded file to exist: %v", err)
+	}
+}
+
+func TestChunkTextPreservesOrderWithOverlap(t *testing.T) {
+	chunks, err := chunkText("one two three four five six seven", 3, 1)
+	if err != nil {
+		t.Fatalf("chunk text: %v", err)
+	}
+
+	expected := []string{
+		"one two three",
+		"three four five",
+		"five six seven",
+	}
+
+	if len(chunks) != len(expected) {
+		t.Fatalf("expected %d chunks, got %d", len(expected), len(chunks))
+	}
+
+	for index, chunk := range chunks {
+		if chunk.ChunkIndex != index {
+			t.Fatalf("expected chunk index %d, got %d", index, chunk.ChunkIndex)
+		}
+
+		if chunk.Content != expected[index] {
+			t.Fatalf("expected chunk %d content %q, got %q", index, expected[index], chunk.Content)
+		}
+	}
+}
+
+func TestChunkTextRejectsEmptyText(t *testing.T) {
+	_, err := chunkText(" \n\t ", 220, 40)
+	if !errors.Is(err, ErrNoText) {
+		t.Fatalf("expected no text error, got %v", err)
 	}
 }
 

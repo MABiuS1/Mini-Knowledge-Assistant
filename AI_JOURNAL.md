@@ -55,3 +55,11 @@
 **AI Response:** Added a document upload service, PostgreSQL metadata store, Fiber upload handler, protected route registration, and tests for invalid file type, oversize files, unsafe names, and successful upload persistence.
 
 **My Adjustment:** Kept parsing and chunking out of this commit so upload validation remains a focused change, and used randomized stored file names to avoid trusting user-provided paths.
+
+## Session 8: Document parsing and chunking
+
+**Prompt:** "Parse uploaded TXT/PDF files, split readable text into ordered chunks, and save chunks in PostgreSQL."
+
+**AI Response:** Added TXT/PDF text extraction, whitespace normalization, overlapping word chunks, transactional document + chunk persistence, and tests for chunk ordering and empty content.
+
+**My Adjustment:** Kept embeddings out of this step so parsing/chunking can be verified independently before RAG retrieval is added.

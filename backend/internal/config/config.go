@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -19,36 +20,34 @@ type Config struct {
 }
 
 func Load() Config {
+	appEnv := mustGetEnv("APP_ENV")
+
 	return Config{
-		AppEnv:         getEnv("APP_ENV", "development"),
-		Port:           getEnv("PORT", "8080"),
-		FrontendURL:    getEnv("FRONTEND_URL", "http://localhost:3000"),
-		DatabaseURL:    getEnv("DATABASE_URL", "postgres://knowledge:knowledge@localhost:5432/knowledge_assistant?sslmode=disable"),
-		UploadDir:      getEnv("UPLOAD_DIR", "./data/uploads"),
-		MaxUploadBytes: getEnvInt64("MAX_UPLOAD_BYTES", 10*1024*1024),
-		RequestTimeout: time.Duration(getEnvInt64("REQUEST_TIMEOUT_SECONDS", 30)) * time.Second,
-		SessionTTL:     time.Duration(getEnvInt64("SESSION_TTL_HOURS", 24)) * time.Hour,
-		CookieSecure:   getEnv("APP_ENV", "development") == "production",
+		AppEnv:         appEnv,
+		Port:           mustGetEnv("PORT"),
+		FrontendURL:    mustGetEnv("FRONTEND_URL"),
+		DatabaseURL:    mustGetEnv("DATABASE_URL"),
+		UploadDir:      mustGetEnv("UPLOAD_DIR"),
+		MaxUploadBytes: mustGetEnvInt64("MAX_UPLOAD_BYTES"),
+		RequestTimeout: time.Duration(mustGetEnvInt64("REQUEST_TIMEOUT_SECONDS")) * time.Second,
+		SessionTTL:     time.Duration(mustGetEnvInt64("SESSION_TTL_HOURS")) * time.Hour,
+		CookieSecure:   appEnv == "production",
 	}
 }
 
-func getEnv(key string, fallback string) string {
+func mustGetEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		return fallback
+		panic(fmt.Sprintf("%s is required", key))
 	}
 	return value
 }
 
-func getEnvInt64(key string, fallback int64) int64 {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-
+func mustGetEnvInt64(key string) int64 {
+	value := mustGetEnv(key)
 	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
-		return fallback
+		panic(fmt.Sprintf("%s must be an integer", key))
 	}
 
 	return parsed
