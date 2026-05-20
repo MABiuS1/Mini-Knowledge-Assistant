@@ -47,13 +47,47 @@ func (s *ChatStore) VerifyConversationOwner(ctx context.Context, userID string, 
 	return nil
 }
 
+func (s *ChatStore) ListConversations(ctx context.Context, userID string, limit int) ([]chat.Conversation, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id::text, title, created_at, updated_at
+		FROM conversations
+		WHERE user_id = $1::uuid
+		ORDER BY updated_at DESC
+		LIMIT $2
+	`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	conversations := []chat.Conversation{}
+	for rows.Next() {
+		var conversation chat.Conversation
+		if err := rows.Scan(
+			&conversation.ID,
+			&conversation.Title,
+			&conversation.CreatedAt,
+			&conversation.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		conversations = append(conversations, conversation)
+	}
+
+	return conversations, rows.Err()
+}
+
 func (s *ChatStore) ListMessages(ctx context.Context, conversationID string, limit int) ([]chat.Message, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT id::text, role, content, prompt_tokens, completion_tokens, total_tokens
+		SELECT id::text, role, content, prompt_tokens, completion_tokens, total_tokens, created_at
 		FROM (
 			SELECT id, role, content, prompt_tokens, completion_tokens, total_tokens, created_at
 			FROM messages
@@ -78,6 +112,7 @@ func (s *ChatStore) ListMessages(ctx context.Context, conversationID string, lim
 			&message.Usage.PromptTokens,
 			&message.Usage.CompletionTokens,
 			&message.Usage.TotalTokens,
+			&message.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

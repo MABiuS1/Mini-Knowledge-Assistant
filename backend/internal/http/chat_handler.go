@@ -11,6 +11,8 @@ import (
 
 type ChatService interface {
 	Send(ctx context.Context, req chat.Request) (chat.Response, error)
+	ListConversations(ctx context.Context, userID string) ([]chat.Conversation, error)
+	LoadConversation(ctx context.Context, userID string, conversationID string) (chat.ConversationDetail, error)
 }
 
 type chatHandler struct {
@@ -40,6 +42,36 @@ func (h chatHandler) send(c *fiber.Ctx) error {
 		Message:        req.Message,
 		DocumentIDs:    req.DocumentIDs,
 	})
+	if err != nil {
+		return chatSendError(err)
+	}
+
+	return c.JSON(response)
+}
+
+func (h chatHandler) listConversations(c *fiber.Ctx) error {
+	user, ok := currentUser(c)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthenticated")
+	}
+
+	conversations, err := h.service.ListConversations(c.UserContext(), user.ID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"conversations": conversations,
+	})
+}
+
+func (h chatHandler) loadConversation(c *fiber.Ctx) error {
+	user, ok := currentUser(c)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthenticated")
+	}
+
+	response, err := h.service.LoadConversation(c.UserContext(), user.ID, c.Params("id"))
 	if err != nil {
 		return chatSendError(err)
 	}

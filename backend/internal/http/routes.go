@@ -30,6 +30,8 @@ func registerRoutes(app *fiber.App, cfg config.Config, deps Dependencies) {
 	protected.Post("/documents/upload", documentHandler.upload)
 
 	chatHandler := chatHandler{service: deps.ChatService}
+	protected.Get("/chat/conversations", chatHandler.listConversations)
+	protected.Get("/chat/conversations/:id", chatHandler.loadConversation)
 	protected.Post("/chat", chatHandler.send)
 
 	ragHandler := ragHandler{service: deps.RAGService}

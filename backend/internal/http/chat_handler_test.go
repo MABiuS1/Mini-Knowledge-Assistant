@@ -12,8 +12,12 @@ import (
 )
 
 type fakeChatService struct {
-	response chat.Response
-	err      error
+	response             chat.Response
+	conversations        []chat.Conversation
+	conversationDetail   chat.ConversationDetail
+	err                  error
+	loadConversationErr  error
+	listConversationsErr error
 }
 
 func (f fakeChatService) Send(context.Context, chat.Request) (chat.Response, error) {
@@ -21,6 +25,20 @@ func (f fakeChatService) Send(context.Context, chat.Request) (chat.Response, err
 		return chat.Response{}, f.err
 	}
 	return f.response, nil
+}
+
+func (f fakeChatService) ListConversations(context.Context, string) ([]chat.Conversation, error) {
+	if f.listConversationsErr != nil {
+		return nil, f.listConversationsErr
+	}
+	return f.conversations, nil
+}
+
+func (f fakeChatService) LoadConversation(context.Context, string, string) (chat.ConversationDetail, error) {
+	if f.loadConversationErr != nil {
+		return chat.ConversationDetail{}, f.loadConversationErr
+	}
+	return f.conversationDetail, nil
 }
 
 func TestChatRouteRequiresAuth(t *testing.T) {
@@ -114,5 +132,47 @@ func TestChatRouteMapsUnexpectedServiceError(t *testing.T) {
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", resp.StatusCode)
+	}
+}
+
+func TestListConversationsRouteReturnsHistory(t *testing.T) {
+	app := NewServerWithDependencies(testConfig(), Dependencies{
+		AuthService: &fakeAuthService{},
+		ChatService: fakeChatService{
+			conversations: []chat.Conversation{
+				{ID: "conversation-1", Title: "Hello"},
+			},
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/chat/conversations", nil)
+	req.Header.Set("Authorization", "Bearer session-token")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestLoadConversationRouteMapsNotFound(t *testing.T) {
+	app := NewServerWithDependencies(testConfig(), Dependencies{
+		AuthService: &fakeAuthService{},
+		ChatService: fakeChatService{loadConversationErr: chat.ErrConversationNotFound},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/chat/conversations/missing", nil)
+	req.Header.Set("Authorization", "Bearer session-token")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
 }

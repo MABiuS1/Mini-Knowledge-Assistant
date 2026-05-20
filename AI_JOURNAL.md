@@ -119,3 +119,11 @@
 **AI Response:** Added a lightweight markdown renderer for assistant messages and a citation list that shows source file, chunk number, snippet, and similarity score.
 
 **My Adjustment:** Avoided adding a markdown dependency so the frontend stays simple for the assessment, while still rendering common answer structures safely with React-escaped content.
+
+## Session 16: Conversation history
+
+**Prompt:** "Implement the next step: add conversation history."
+
+**AI Response:** Added backend endpoints to list and load conversations, included persisted messages and session token totals, and updated the frontend chat sidebar to load previous conversations.
+
+**My Adjustment:** Stored only the selected conversation ID in localStorage so reloads reopen the same conversation without duplicating chat state in the browser.
