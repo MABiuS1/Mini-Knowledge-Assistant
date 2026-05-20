@@ -8,6 +8,7 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -158,6 +159,35 @@ func TestChunkTextRejectsEmptyText(t *testing.T) {
 	_, err := chunkText(" \n\t ", 220, 40)
 	if !errors.Is(err, ErrNoText) {
 		t.Fatalf("expected no text error, got %v", err)
+	}
+}
+
+func TestExtractPDFTextFromStructureEntries(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "canva.pdf")
+	content := []byte(`/T (KLAVIVACH)
+/E (Software Engineering graduate with hands-on internship experience)
+/E (Software Engineering graduate with hands-on internship experience)
+/E (Angular \(Frontend\) and .NET \(Backend/API\))`)
+
+	if err := os.WriteFile(path, content, 0o600); err != nil {
+		t.Fatalf("write pdf-like fixture: %v", err)
+	}
+
+	text, err := extractPDFTextFromStructure(path)
+	if err != nil {
+		t.Fatalf("extract structure text: %v", err)
+	}
+
+	expectedParts := []string{
+		"KLAVIVACH",
+		"Software Engineering graduate with hands-on internship experience",
+		"Angular (Frontend) and .NET (Backend/API)",
+	}
+
+	for _, expected := range expectedParts {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("expected extracted text to contain %q, got %q", expected, text)
+		}
 	}
 }
 

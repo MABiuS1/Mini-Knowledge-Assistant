@@ -48,6 +48,8 @@ func documentUploadError(err error) error {
 		return fiber.NewError(fiber.StatusBadRequest, "only PDF and TXT files are allowed")
 	case errors.Is(err, document.ErrUnsafeName):
 		return fiber.NewError(fiber.StatusBadRequest, "file name is not safe")
+	case errors.Is(err, document.ErrNoText):
+		return fiber.NewError(fiber.StatusUnprocessableEntity, "file does not contain readable text")
 	default:
 		return err
 	}

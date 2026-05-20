@@ -87,3 +87,11 @@
 **AI Response:** Added a Gemini embedContent client, embedding configuration, RAG indexing/retrieval service, pgvector repository methods, upload-time chunk embedding, and a protected retrieval endpoint for testing.
 
 **My Adjustment:** Set Gemini embeddings to 1536 dimensions to match the existing pgvector schema and kept context injection/citations for the next commit.
+
+## Session 12: Document-context chat and citations
+
+**Prompt:** "Use retrieved document chunks in /api/chat and return citations."
+
+**AI Response:** Updated the chat service to retrieve chunks when document IDs are provided, inject document context into the AI prompt, and return citation metadata with snippets.
+
+**My Adjustment:** Kept the RAG retrieval interface provider-agnostic and left streaming for a later step so citation behavior stays easy to test.

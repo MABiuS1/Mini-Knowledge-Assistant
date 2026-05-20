@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	pdf "github.com/ledongthuc/pdf"
+	rscpdf "rsc.io/pdf"
 )
 
 var (
@@ -163,6 +164,20 @@ func extractText(path string, mimeType string) (string, error) {
 }
 
 func extractPDFText(path string) (string, error) {
+	text, err := extractPDFTextWithLedongthuc(path)
+	if err == nil && strings.TrimSpace(text) != "" {
+		return text, nil
+	}
+
+	text, err = extractPDFTextWithRSC(path)
+	if err == nil && strings.TrimSpace(text) != "" {
+		return text, nil
+	}
+
+	return extractPDFTextFromStructure(path)
+}
+
+func extractPDFTextWithLedongthuc(path string) (string, error) {
 	file, reader, err := pdf.Open(path)
 	if err != nil {
 		return "", err
@@ -186,6 +201,111 @@ func extractPDFText(path string) (string, error) {
 	}
 
 	return normalizeText(builder.String()), nil
+}
+
+func extractPDFTextWithRSC(path string) (string, error) {
+	reader, err := rscpdf.Open(path)
+	if err != nil {
+		return "", err
+	}
+
+	var builder strings.Builder
+	for pageNumber := 1; pageNumber <= reader.NumPage(); pageNumber++ {
+		page := reader.Page(pageNumber)
+		content := page.Content()
+		for _, text := range content.Text {
+			builder.WriteString(text.S)
+			builder.WriteString(" ")
+		}
+		builder.WriteString("\n")
+	}
+
+	return normalizeText(builder.String()), nil
+}
+
+func extractPDFTextFromStructure(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	markers := []string{"/ActualText (", "/E (", "/T ("}
+	seen := map[string]bool{}
+	var builder strings.Builder
+
+	for _, marker := range markers {
+		offset := 0
+		for {
+			index := strings.Index(string(content[offset:]), marker)
+			if index == -1 {
+				break
+			}
+
+			openParen := offset + index + len(marker) - 1
+			value, next := parsePDFLiteralString(content, openParen)
+			offset = next
+
+			value = normalizeText(value)
+			if value == "" || seen[value] {
+				continue
+			}
+
+			seen[value] = true
+			builder.WriteString(value)
+			builder.WriteString("\n")
+		}
+	}
+
+	return normalizeText(builder.String()), nil
+}
+
+func parsePDFLiteralString(content []byte, openParen int) (string, int) {
+	if openParen < 0 || openParen >= len(content) || content[openParen] != '(' {
+		return "", openParen + 1
+	}
+
+	var builder strings.Builder
+	depth := 1
+	for index := openParen + 1; index < len(content); index++ {
+		character := content[index]
+
+		if character == '\\' {
+			if index+1 >= len(content) {
+				break
+			}
+			index++
+			escaped := content[index]
+			switch escaped {
+			case 'n':
+				builder.WriteByte('\n')
+			case 'r':
+				builder.WriteByte('\r')
+			case 't':
+				builder.WriteByte('\t')
+			case 'b', 'f':
+				// Ignore rarely useful control escapes in extracted text.
+			default:
+				builder.WriteByte(escaped)
+			}
+			continue
+		}
+
+		switch character {
+		case '(':
+			depth++
+			builder.WriteByte(character)
+		case ')':
+			depth--
+			if depth == 0 {
+				return builder.String(), index + 1
+			}
+			builder.WriteByte(character)
+		default:
+			builder.WriteByte(character)
+		}
+	}
+
+	return builder.String(), len(content)
 }
 
 func chunkText(text string, chunkSize int, overlap int) ([]Chunk, error) {

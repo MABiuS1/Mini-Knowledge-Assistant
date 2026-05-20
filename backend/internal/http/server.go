@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ func NewServer(cfg config.Config) *fiber.App {
 	if err != nil {
 		panic(err)
 	}
-	chatService := chat.NewService(chatStore, aiClient)
+	chatService := chat.NewService(chatStore, aiClient, chatRetriever{service: ragService})
 
 	return NewServerWithDependencies(cfg, Dependencies{
 		AuthService:     authService,
@@ -43,6 +44,31 @@ func NewServer(cfg config.Config) *fiber.App {
 		ChatService:     chatService,
 		RAGService:      ragService,
 	})
+}
+
+type chatRetriever struct {
+	service *rag.Service
+}
+
+func (r chatRetriever) Retrieve(ctx context.Context, userID string, documentIDs []string, query string, limit int) ([]chat.RetrievedChunk, error) {
+	chunks, err := r.service.Retrieve(ctx, userID, documentIDs, query, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]chat.RetrievedChunk, 0, len(chunks))
+	for _, chunk := range chunks {
+		result = append(result, chat.RetrievedChunk{
+			DocumentID: chunk.DocumentID,
+			FileName:   chunk.FileName,
+			ChunkID:    chunk.ChunkID,
+			ChunkIndex: chunk.ChunkIndex,
+			Content:    chunk.Content,
+			Similarity: chunk.Similarity,
+		})
+	}
+
+	return result, nil
 }
 
 type Dependencies struct {
