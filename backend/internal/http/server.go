@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mabius/knowledge-assistant/backend/internal/auth"
 	"github.com/mabius/knowledge-assistant/backend/internal/config"
+	"github.com/mabius/knowledge-assistant/backend/internal/document"
 	"github.com/mabius/knowledge-assistant/backend/internal/repository"
 )
 
@@ -20,19 +21,24 @@ func NewServer(cfg config.Config) *fiber.App {
 
 	authStore := repository.NewAuthStore(db)
 	authService := authAdapter{service: auth.NewService(authStore, cfg.SessionTTL)}
+	documentStore := repository.NewDocumentStore(db)
+	documentService := document.NewService(documentStore, cfg.UploadDir, cfg.MaxUploadBytes)
 
 	return NewServerWithDependencies(cfg, Dependencies{
-		AuthService: authService,
+		AuthService:     authService,
+		DocumentService: documentService,
 	})
 }
 
 type Dependencies struct {
-	AuthService AuthService
+	AuthService     AuthService
+	DocumentService DocumentService
 }
 
 func NewServerWithDependencies(cfg config.Config, deps Dependencies) *fiber.App {
 	app := fiber.New(fiber.Config{
 		AppName:      "Knowledge Assistant API",
+		BodyLimit:    int(cfg.MaxUploadBytes + 1024*1024),
 		ReadTimeout:  cfg.RequestTimeout,
 		WriteTimeout: cfg.RequestTimeout,
 		IdleTimeout:  60 * time.Second,

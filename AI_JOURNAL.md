@@ -47,3 +47,11 @@
 **AI Response:** Added an auth API wrapper, React auth provider, login form, route guard, and authenticated app shell for the chat and upload pages.
 
 **My Adjustment:** Used client-side session checks against `/api/me` because the backend owns the httpOnly session cookie, and kept upload/chat content as placeholders for later feature commits.
+
+## Session 7: Backend upload validation
+
+**Prompt:** "Implement the protected file upload endpoint with PDF/TXT validation, file size limits, safe file names, metadata persistence, and tests."
+
+**AI Response:** Added a document upload service, PostgreSQL metadata store, Fiber upload handler, protected route registration, and tests for invalid file type, oversize files, unsafe names, and successful upload persistence.
+
+**My Adjustment:** Kept parsing and chunking out of this commit so upload validation remains a focused change, and used randomized stored file names to avoid trusting user-provided paths.
