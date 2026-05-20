@@ -4,9 +4,22 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { AuthGuard } from "@/components/auth-guard";
-import { sendChatMessage } from "@/lib/chat-api";
+import { CitationList } from "@/components/citation-list";
+import { MarkdownContent } from "@/components/markdown-content";
+import {
+  listConversations,
+  loadConversation,
+  sendChatMessage,
+  streamChatMessage,
+} from "@/lib/chat-api";
 import { listDocuments } from "@/lib/documents-api";
-import type { Citation, Document, Usage } from "@/types/api";
+import type {
+  Citation,
+  ConversationMessage,
+  ConversationSummary,
+  Document,
+  Usage,
+} from "@/types/api";
 
 type ChatMessage = {
   id: string;
@@ -22,8 +35,14 @@ const emptyUsage: Usage = {
   totalTokens: 0,
 };
 
+const selectedConversationKey = "knowledge-assistant:selected-conversation";
+
 export default function ChatPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [historyState, setHistoryState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [documentsState, setDocumentsState] = useState<
     "loading" | "ready" | "error"
@@ -65,6 +84,24 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    async function initializeHistory() {
+      const history = await refreshConversations();
+      const savedConversationId = window.localStorage.getItem(
+        selectedConversationKey,
+      );
+
+      if (
+        savedConversationId &&
+        history.some((conversation) => conversation.id === savedConversationId)
+      ) {
+        await handleLoadConversation(savedConversationId);
+      }
+    }
+
+    void initializeHistory();
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
@@ -85,30 +122,65 @@ export default function ChatPage() {
       role: "user",
       content: message,
     };
-    setMessages((current) => [...current, userMessage]);
+    const assistantDraftId = `assistant-${Date.now()}`;
+    const assistantDraft: ChatMessage = {
+      id: assistantDraftId,
+      role: "assistant",
+      content: "",
+    };
+    setMessages((current) => [...current, userMessage, assistantDraft]);
 
     try {
-      const response = await sendChatMessage({
+      const request = {
         message,
         conversationId: conversationId || undefined,
         documentIds: selectedDocumentIds,
-      });
+      };
+
+      let streamedContent = "";
+      let response: Awaited<ReturnType<typeof sendChatMessage>>;
+      try {
+        response = await streamChatMessage(request, (content) => {
+          streamedContent += content;
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantDraftId
+                ? { ...item, content: streamedContent }
+                : item,
+            ),
+          );
+        });
+      } catch {
+        response = await sendChatMessage(request);
+      }
 
       setConversationId(response.conversationId);
+      window.localStorage.setItem(
+        selectedConversationKey,
+        response.conversationId,
+      );
       setSessionUsage(response.sessionTotalUsage);
-      setMessages((current) => [
-        ...current,
-        {
-          id: response.assistantMessageId,
-          role: "assistant",
-          content: response.answer,
-          usage: response.usage,
-          citations: response.citations,
-        },
-      ]);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === assistantDraftId
+            ? {
+                id: response.assistantMessageId,
+                role: "assistant",
+                content: response.answer,
+                usage: response.usage,
+                citations: response.citations,
+              }
+            : item,
+        ),
+      );
+      void refreshConversations();
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Chat failed.");
-      setMessages((current) => current.filter((item) => item.id !== userMessage.id));
+      setMessages((current) =>
+        current.filter(
+          (item) => item.id !== userMessage.id && item.id !== assistantDraftId,
+        ),
+      );
       setDraft(message);
     } finally {
       setIsSending(false);
@@ -128,6 +200,46 @@ export default function ChatPage() {
     setMessages([]);
     setSessionUsage(emptyUsage);
     setError("");
+    window.localStorage.removeItem(selectedConversationKey);
+  }
+
+  async function refreshConversations(): Promise<ConversationSummary[]> {
+    setHistoryState("loading");
+    try {
+      const response = await listConversations();
+      setConversations(response.conversations);
+      setHistoryState("ready");
+      return response.conversations;
+    } catch (historyError) {
+      setError(
+        historyError instanceof Error
+          ? historyError.message
+          : "Unable to load conversations.",
+      );
+      setHistoryState("error");
+      return [];
+    }
+  }
+
+  async function handleLoadConversation(nextConversationId: string) {
+    setError("");
+    try {
+      const response = await loadConversation(nextConversationId);
+      setConversationId(response.conversation.id);
+      setMessages(toChatMessages(response.messages));
+      setSessionUsage(response.sessionTotalUsage);
+      window.localStorage.setItem(
+        selectedConversationKey,
+        response.conversation.id,
+      );
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load conversation.",
+      );
+      window.localStorage.removeItem(selectedConversationKey);
+    }
   }
 
   return (
@@ -135,6 +247,27 @@ export default function ChatPage() {
       <AppShell>
         <div className="grid min-h-[calc(100vh-9rem)] gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="rounded-lg border border-line bg-white shadow-sm">
+            <div className="border-b border-line px-5 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <h1 className="text-base font-semibold text-ink">History</h1>
+                <button
+                  type="button"
+                  onClick={handleNewConversation}
+                  className="rounded-md border border-line px-2.5 py-1.5 text-xs font-medium text-ink hover:border-brand"
+                >
+                  New
+                </button>
+              </div>
+              <div className="mt-3 max-h-[220px] overflow-y-auto">
+                <ConversationList
+                  conversations={conversations}
+                  activeConversationId={conversationId}
+                  state={historyState}
+                  onSelect={(id) => void handleLoadConversation(id)}
+                />
+              </div>
+            </div>
+
             <div className="border-b border-line px-5 py-4">
               <h1 className="text-base font-semibold text-ink">Context</h1>
               <p className="mt-1 text-sm text-muted">
@@ -156,13 +289,6 @@ export default function ChatPage() {
                 Session tokens
               </p>
               <UsageGrid usage={sessionUsage} />
-              <button
-                type="button"
-                onClick={handleNewConversation}
-                className="mt-4 w-full rounded-md border border-line px-3 py-2 text-sm font-medium text-ink hover:border-brand"
-              >
-                New chat
-              </button>
             </div>
           </aside>
 
@@ -200,11 +326,6 @@ export default function ChatPage() {
                   {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} />
                   ))}
-                  {isSending ? (
-                    <div className="max-w-[80%] rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
-                      Thinking...
-                    </div>
-                  ) : null}
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -292,6 +413,63 @@ function DocumentSelector({
   );
 }
 
+function ConversationList({
+  conversations,
+  activeConversationId,
+  state,
+  onSelect,
+}: {
+  conversations: ConversationSummary[];
+  activeConversationId: string;
+  state: "loading" | "ready" | "error";
+  onSelect: (conversationId: string) => void;
+}) {
+  if (state === "loading") {
+    return <p className="py-3 text-sm text-muted">Loading conversations...</p>;
+  }
+
+  if (state === "error") {
+    return <p className="py-3 text-sm text-red-700">History unavailable.</p>;
+  }
+
+  if (conversations.length === 0) {
+    return <p className="py-3 text-sm text-muted">No conversations yet.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {conversations.map((conversation) => {
+        const active = conversation.id === activeConversationId;
+        return (
+          <button
+            key={conversation.id}
+            type="button"
+            onClick={() => onSelect(conversation.id)}
+            className={
+              active
+                ? "w-full rounded-md bg-brand px-3 py-2 text-left text-sm text-white"
+                : "w-full rounded-md border border-transparent px-3 py-2 text-left text-sm text-ink hover:border-line hover:bg-surface"
+            }
+          >
+            <span className="block truncate font-medium">
+              {conversation.title}
+            </span>
+            <span
+              className={
+                active
+                  ? "mt-1 block text-xs text-blue-100"
+                  : "mt-1 block text-xs text-muted"
+              }
+            >
+              {formatConversationDate(conversation.updatedAt)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
 
@@ -304,15 +482,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             : "max-w-[80%] rounded-lg border border-line bg-surface px-4 py-3 text-sm text-ink"
         }
       >
-        <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+        ) : (
+          <MarkdownContent content={message.content || "Thinking..."} />
+        )}
         {message.usage ? (
           <div className="mt-3 border-t border-line pt-3">
             <UsageInline usage={message.usage} />
-            {message.citations && message.citations.length > 0 ? (
-              <p className="mt-2 text-xs text-muted">
-                {message.citations.length} citations available
-              </p>
-            ) : null}
+            <CitationList citations={message.citations ?? []} />
           </div>
         ) : null}
       </div>
@@ -346,4 +524,31 @@ function UsageInline({ usage }: { usage: Usage }) {
       {usage.completionTokens} answer
     </p>
   );
+}
+
+function toChatMessages(messages: ConversationMessage[]): ChatMessage[] {
+  return messages
+    .filter(isChatRoleMessage)
+    .map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      usage:
+        message.role === "assistant" && message.usage.totalTokens > 0
+          ? message.usage
+          : undefined,
+    }));
+}
+
+function isChatRoleMessage(
+  message: ConversationMessage,
+): message is ConversationMessage & { role: "user" | "assistant" } {
+  return message.role === "user" || message.role === "assistant";
+}
+
+function formatConversationDate(value: string): string {
+  return new Intl.DateTimeFormat("th-TH", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

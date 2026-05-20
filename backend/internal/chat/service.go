@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var (
@@ -22,10 +23,11 @@ const (
 )
 
 type Message struct {
-	ID      string
-	Role    Role
-	Content string
-	Usage   Usage
+	ID        string    `json:"id"`
+	Role      Role      `json:"role"`
+	Content   string    `json:"content"`
+	Usage     Usage     `json:"usage"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type Usage struct {
@@ -37,10 +39,18 @@ type Usage struct {
 type Store interface {
 	CreateConversation(ctx context.Context, userID string, title string) (string, error)
 	VerifyConversationOwner(ctx context.Context, userID string, conversationID string) error
+	ListConversations(ctx context.Context, userID string, limit int) ([]Conversation, error)
 	ListMessages(ctx context.Context, conversationID string, limit int) ([]Message, error)
 	CreateMessage(ctx context.Context, conversationID string, role Role, content string, usage Usage) (string, error)
 	CreateUsageEvent(ctx context.Context, params UsageEventParams) error
 	SumConversationUsage(ctx context.Context, conversationID string) (Usage, error)
+}
+
+type Conversation struct {
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type UsageEventParams struct {
@@ -86,6 +96,12 @@ type Response struct {
 	SessionTotalUsage  Usage      `json:"sessionTotalUsage"`
 	AssistantMessageID string     `json:"assistantMessageId"`
 	Citations          []Citation `json:"citations"`
+}
+
+type ConversationDetail struct {
+	Conversation      Conversation `json:"conversation"`
+	Messages          []Message    `json:"messages"`
+	SessionTotalUsage Usage        `json:"sessionTotalUsage"`
 }
 
 type RetrievedChunk struct {
@@ -192,6 +208,55 @@ func (s *Service) Send(ctx context.Context, req Request) (Response, error) {
 		SessionTotalUsage:  totalUsage,
 		AssistantMessageID: assistantMessageID,
 		Citations:          citationsFromChunks(retrievedChunks),
+	}, nil
+}
+
+func (s *Service) ListConversations(ctx context.Context, userID string) ([]Conversation, error) {
+	return s.store.ListConversations(ctx, userID, 50)
+}
+
+func (s *Service) LoadConversation(ctx context.Context, userID string, conversationID string) (ConversationDetail, error) {
+	conversationID = strings.TrimSpace(conversationID)
+	if conversationID == "" {
+		return ConversationDetail{}, ErrConversationNotFound
+	}
+
+	if err := s.store.VerifyConversationOwner(ctx, userID, conversationID); err != nil {
+		return ConversationDetail{}, ErrConversationNotFound
+	}
+
+	conversations, err := s.store.ListConversations(ctx, userID, 100)
+	if err != nil {
+		return ConversationDetail{}, err
+	}
+
+	var conversation Conversation
+	for _, item := range conversations {
+		if item.ID == conversationID {
+			conversation = item
+			break
+		}
+	}
+
+	messages, err := s.store.ListMessages(ctx, conversationID, 200)
+	if err != nil {
+		return ConversationDetail{}, err
+	}
+
+	totalUsage, err := s.store.SumConversationUsage(ctx, conversationID)
+	if err != nil {
+		return ConversationDetail{}, err
+	}
+
+	if conversation.ID == "" {
+		conversation.ID = conversationID
+		conversation.Title = "Conversation"
+	}
+
+	return ConversationDetail{
+		Conversation:      conversation,
+		Messages:          messages,
+		SessionTotalUsage: totalUsage,
 	}, nil
 }
 

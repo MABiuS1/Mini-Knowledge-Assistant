@@ -27,6 +27,19 @@ func (m *memoryStore) VerifyConversationOwner(context.Context, string, string) e
 	return nil
 }
 
+func (m *memoryStore) ListConversations(context.Context, string, int) ([]Conversation, error) {
+	if m.conversationID == "" {
+		return []Conversation{}, nil
+	}
+
+	return []Conversation{
+		{
+			ID:    m.conversationID,
+			Title: m.lastTitle,
+		},
+	}, nil
+}
+
 func (m *memoryStore) ListMessages(context.Context, string, int) ([]Message, error) {
 	return m.messages, nil
 }
@@ -216,5 +229,40 @@ func TestSnippetPreservesUTF8(t *testing.T) {
 
 	if !utf8.ValidString(got) {
 		t.Fatalf("expected valid utf-8, got %q", got)
+	}
+}
+
+func TestLoadConversationReturnsMessagesAndUsage(t *testing.T) {
+	store := &memoryStore{
+		conversationID: "conversation-1",
+		lastTitle:      "Hello",
+		messages: []Message{
+			{ID: "message-1", Role: RoleUser, Content: "Hello"},
+			{
+				ID:      "message-2",
+				Role:    RoleAssistant,
+				Content: "Hi",
+				Usage:   Usage{PromptTokens: 1, CompletionTokens: 2, TotalTokens: 3},
+			},
+		},
+		usage: Usage{PromptTokens: 1, CompletionTokens: 2, TotalTokens: 3},
+	}
+	service := NewService(store, fakeClient{}, nil)
+
+	response, err := service.LoadConversation(context.Background(), "user-1", "conversation-1")
+	if err != nil {
+		t.Fatalf("load conversation: %v", err)
+	}
+
+	if response.Conversation.ID != "conversation-1" {
+		t.Fatalf("expected conversation id, got %q", response.Conversation.ID)
+	}
+
+	if len(response.Messages) != 2 {
+		t.Fatalf("expected two messages, got %d", len(response.Messages))
+	}
+
+	if response.SessionTotalUsage.TotalTokens != 3 {
+		t.Fatalf("expected total usage, got %d", response.SessionTotalUsage.TotalTokens)
 	}
 }

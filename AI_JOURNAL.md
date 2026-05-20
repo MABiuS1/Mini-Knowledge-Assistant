@@ -111,3 +111,27 @@
 **AI Response:** Replaced the chat placeholder with a protected chat page that loads documents, supports document selection, sends messages to `/api/chat`, renders user and assistant messages, and displays token usage per response and total session usage.
 
 **My Adjustment:** Kept markdown and citation rendering minimal because the plan has a dedicated next step for markdown and citations.
+
+## Session 15: Markdown and citations
+
+**Prompt:** "Implement the next step: render markdown and citations."
+
+**AI Response:** Added a lightweight markdown renderer for assistant messages and a citation list that shows source file, chunk number, snippet, and similarity score.
+
+**My Adjustment:** Avoided adding a markdown dependency so the frontend stays simple for the assessment, while still rendering common answer structures safely with React-escaped content.
+
+## Session 16: Conversation history
+
+**Prompt:** "Implement the next step: add conversation history."
+
+**AI Response:** Added backend endpoints to list and load conversations, included persisted messages and session token totals, and updated the frontend chat sidebar to load previous conversations.
+
+**My Adjustment:** Stored only the selected conversation ID in localStorage so reloads reopen the same conversation without duplicating chat state in the browser.
+
+## Session 17: Streaming chat responses
+
+**Prompt:** "Implement the next step: add streaming responses."
+
+**AI Response:** Added a protected SSE chat endpoint and updated the frontend chat client to read stream events, incrementally update the assistant message, and keep the existing non-streaming chat request as fallback.
+
+**My Adjustment:** Reused the existing chat service so persistence, token usage, citations, and non-streaming behavior stay consistent instead of introducing a separate streaming-only save path.

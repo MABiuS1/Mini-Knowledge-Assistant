@@ -46,6 +46,21 @@ export type Citation = {
   similarity: number;
 };
 
+export type ConversationSummary = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ConversationMessage = {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  usage: Usage;
+  createdAt: string;
+};
+
 export type ChatRequest = {
   message: string;
   conversationId?: string;
@@ -59,6 +74,16 @@ export type ChatResponse = {
   sessionTotalUsage: Usage;
   assistantMessageId: string;
   citations: Citation[];
+};
+
+export type ConversationsResponse = {
+  conversations: ConversationSummary[];
+};
+
+export type ConversationDetailResponse = {
+  conversation: ConversationSummary;
+  messages: ConversationMessage[];
+  sessionTotalUsage: Usage;
 };
 
 export type ApiError = {
