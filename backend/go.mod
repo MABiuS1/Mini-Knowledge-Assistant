@@ -1,11 +1,12 @@
 module github.com/mabius/knowledge-assistant/backend
 
-go 1.22
+go 1.24.1
 
 require github.com/gofiber/fiber/v2 v2.52.6
 
 require (
 	github.com/jackc/pgx/v5 v5.7.2
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	golang.org/x/crypto v0.31.0
 )
 

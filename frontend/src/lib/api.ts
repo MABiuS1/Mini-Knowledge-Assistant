@@ -1,5 +1,3 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-
 type ApiOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
 };
@@ -16,7 +14,7 @@ export async function apiRequest<T>(
     body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${apiURL()}${path}`, {
     ...options,
     body,
     headers,
@@ -31,6 +29,15 @@ export async function apiRequest<T>(
   return (await response.json()) as T;
 }
 
+function apiURL(): string {
+  const value = process.env.NEXT_PUBLIC_API_URL;
+  if (!value) {
+    throw new Error("NEXT_PUBLIC_API_URL is not configured");
+  }
+
+  return value.replace(/\/$/, "");
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as {
@@ -41,4 +48,3 @@ async function readErrorMessage(response: Response): Promise<string> {
     return `Request failed with ${response.status}`;
   }
 }
-

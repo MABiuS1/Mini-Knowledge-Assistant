@@ -12,17 +12,21 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+
+	pdf "github.com/ledongthuc/pdf"
 )
 
 var (
 	ErrFileRequired = errors.New("file is required")
 	ErrFileTooLarge = errors.New("file is too large")
 	ErrInvalidType  = errors.New("only PDF and TXT files are allowed")
+	ErrNoText       = errors.New("file does not contain readable text")
 	ErrUnsafeName   = errors.New("file name is not safe")
 )
 
 type Store interface {
-	CreateDocument(ctx context.Context, params CreateDocumentParams) (Document, error)
+	CreateDocument(ctx context.Context, params CreateDocumentParams, chunks []Chunk) (Document, error)
 }
 
 type CreateDocumentParams struct {
@@ -42,6 +46,12 @@ type Document struct {
 	Status       string    `json:"status"`
 	ChunkCount   int       `json:"chunkCount"`
 	CreatedAt    time.Time `json:"createdAt"`
+}
+
+type Chunk struct {
+	ChunkIndex int
+	Content    string
+	TokenCount int
 }
 
 type Service struct {
@@ -98,19 +108,119 @@ func (s *Service) Upload(ctx context.Context, userID string, fileHeader *multipa
 		return Document{}, err
 	}
 
+	text, err := extractText(destinationPath, mimeType)
+	if err != nil {
+		_ = os.Remove(destinationPath)
+		return Document{}, err
+	}
+
+	chunks, err := chunkText(text, 220, 40)
+	if err != nil {
+		_ = os.Remove(destinationPath)
+		return Document{}, err
+	}
+
 	doc, err := s.store.CreateDocument(ctx, CreateDocumentParams{
 		UserID:       userID,
 		OriginalName: fileHeader.Filename,
 		StoredName:   storedName,
 		MimeType:     mimeType,
 		SizeBytes:    fileHeader.Size,
-	})
+	}, chunks)
 	if err != nil {
 		_ = os.Remove(destinationPath)
 		return Document{}, err
 	}
 
 	return doc, nil
+}
+
+func extractText(path string, mimeType string) (string, error) {
+	switch {
+	case mimeType == "application/pdf":
+		return extractPDFText(path)
+	case strings.HasPrefix(mimeType, "text/plain"):
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return "", err
+		}
+		return normalizeText(string(content)), nil
+	default:
+		return "", ErrInvalidType
+	}
+}
+
+func extractPDFText(path string) (string, error) {
+	file, reader, err := pdf.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	var builder strings.Builder
+	for pageNumber := 1; pageNumber <= reader.NumPage(); pageNumber++ {
+		page := reader.Page(pageNumber)
+		if page.V.IsNull() {
+			continue
+		}
+
+		text, err := page.GetPlainText(nil)
+		if err != nil {
+			return "", err
+		}
+
+		builder.WriteString(text)
+		builder.WriteString("\n")
+	}
+
+	return normalizeText(builder.String()), nil
+}
+
+func chunkText(text string, chunkSize int, overlap int) ([]Chunk, error) {
+	words := strings.Fields(normalizeText(text))
+	if len(words) == 0 {
+		return nil, ErrNoText
+	}
+
+	if chunkSize <= 0 {
+		chunkSize = 220
+	}
+
+	if overlap < 0 {
+		overlap = 0
+	}
+
+	if overlap >= chunkSize {
+		overlap = chunkSize / 5
+	}
+
+	step := chunkSize - overlap
+	chunks := make([]Chunk, 0, (len(words)/step)+1)
+	for start := 0; start < len(words); start += step {
+		end := start + chunkSize
+		if end > len(words) {
+			end = len(words)
+		}
+
+		content := strings.Join(words[start:end], " ")
+		chunks = append(chunks, Chunk{
+			ChunkIndex: len(chunks),
+			Content:    content,
+			TokenCount: len(words[start:end]),
+		})
+
+		if end == len(words) {
+			break
+		}
+	}
+
+	return chunks, nil
+}
+
+func normalizeText(text string) string {
+	return strings.Join(strings.FieldsFunc(text, func(r rune) bool {
+		return unicode.IsSpace(r)
+	}), " ")
 }
 
 func validateFile(fileHeader *multipart.FileHeader, maxUploadBytes int64) (string, error) {

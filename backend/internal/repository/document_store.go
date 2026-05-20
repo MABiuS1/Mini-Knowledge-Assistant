@@ -16,13 +16,19 @@ func NewDocumentStore(db *sql.DB) *DocumentStore {
 	return &DocumentStore{db: db}
 }
 
-func (s *DocumentStore) CreateDocument(ctx context.Context, params document.CreateDocumentParams) (document.Document, error) {
+func (s *DocumentStore) CreateDocument(ctx context.Context, params document.CreateDocumentParams, chunks []document.Chunk) (document.Document, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return document.Document{}, err
+	}
+	defer tx.Rollback()
+
 	var doc document.Document
-	err := s.db.QueryRowContext(ctx, `
-		INSERT INTO documents (user_id, original_name, stored_name, mime_type, size_bytes, status)
-		VALUES ($1::uuid, $2, $3, $4, $5, 'uploaded')
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO documents (user_id, original_name, stored_name, mime_type, size_bytes, status, chunk_count)
+		VALUES ($1::uuid, $2, $3, $4, $5, 'ready', $6)
 		RETURNING id::text, original_name, stored_name, mime_type, size_bytes, status, chunk_count, created_at
-	`, params.UserID, params.OriginalName, params.StoredName, params.MimeType, params.SizeBytes).
+	`, params.UserID, params.OriginalName, params.StoredName, params.MimeType, params.SizeBytes, len(chunks)).
 		Scan(
 			&doc.ID,
 			&doc.OriginalName,
@@ -34,6 +40,20 @@ func (s *DocumentStore) CreateDocument(ctx context.Context, params document.Crea
 			&doc.CreatedAt,
 		)
 	if err != nil {
+		return document.Document{}, err
+	}
+
+	for _, chunk := range chunks {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO document_chunks (document_id, chunk_index, content, token_count)
+			VALUES ($1::uuid, $2, $3, $4)
+		`, doc.ID, chunk.ChunkIndex, chunk.Content, chunk.TokenCount)
+		if err != nil {
+			return document.Document{}, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
 		return document.Document{}, err
 	}
 
