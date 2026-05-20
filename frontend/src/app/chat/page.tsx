@@ -4,6 +4,8 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { AuthGuard } from "@/components/auth-guard";
+import { CitationList } from "@/components/citation-list";
+import { MarkdownContent } from "@/components/markdown-content";
 import { sendChatMessage } from "@/lib/chat-api";
 import { listDocuments } from "@/lib/documents-api";
 import type { Citation, Document, Usage } from "@/types/api";
@@ -304,15 +306,15 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             : "max-w-[80%] rounded-lg border border-line bg-surface px-4 py-3 text-sm text-ink"
         }
       >
-        <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap leading-6">{message.content}</p>
+        ) : (
+          <MarkdownContent content={message.content} />
+        )}
         {message.usage ? (
           <div className="mt-3 border-t border-line pt-3">
             <UsageInline usage={message.usage} />
-            {message.citations && message.citations.length > 0 ? (
-              <p className="mt-2 text-xs text-muted">
-                {message.citations.length} citations available
-              </p>
-            ) : null}
+            <CitationList citations={message.citations ?? []} />
           </div>
         ) : null}
       </div>

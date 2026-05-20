@@ -111,3 +111,11 @@
 **AI Response:** Replaced the chat placeholder with a protected chat page that loads documents, supports document selection, sends messages to `/api/chat`, renders user and assistant messages, and displays token usage per response and total session usage.
 
 **My Adjustment:** Kept markdown and citation rendering minimal because the plan has a dedicated next step for markdown and citations.
+
+## Session 15: Markdown and citations
+
+**Prompt:** "Implement the next step: render markdown and citations."
+
+**AI Response:** Added a lightweight markdown renderer for assistant messages and a citation list that shows source file, chunk number, snippet, and similarity score.
+
+**My Adjustment:** Avoided adding a markdown dependency so the frontend stays simple for the assessment, while still rendering common answer structures safely with React-escaped content.
