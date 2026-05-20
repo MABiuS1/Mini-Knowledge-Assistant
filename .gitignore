@@ -13,6 +13,7 @@ dist/
 build/
 tmp/
 coverage/
+*.tsbuildinfo
 
 # Go
 *.test
@@ -26,4 +27,3 @@ data/uploads/*
 .DS_Store
 .idea/
 .vscode/
-

@@ -31,3 +31,11 @@
 **AI Response:** Added a session-based auth service, PostgreSQL repository, Fiber handlers, auth middleware, and route tests using a fake auth service.
 
 **My Adjustment:** Used httpOnly cookie sessions instead of exposing JWTs to the browser, while still supporting Bearer tokens for easier API testing.
+
+## Session 5: Next.js frontend scaffold
+
+**Prompt:** "Scaffold the Next.js frontend with TypeScript, Tailwind, a basic layout, API client wrapper, and Dockerfile."
+
+**AI Response:** Created the frontend project configuration, placeholder app pages, global styles, typed API request helper, and Dockerfile for standalone Next.js builds.
+
+**My Adjustment:** Kept login, upload, and chat pages as placeholders so the scaffold commit stays separate from the authentication UI feature.
