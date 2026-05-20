@@ -10,6 +10,7 @@ import {
   listConversations,
   loadConversation,
   sendChatMessage,
+  streamChatMessage,
 } from "@/lib/chat-api";
 import { listDocuments } from "@/lib/documents-api";
 import type {
@@ -121,14 +122,37 @@ export default function ChatPage() {
       role: "user",
       content: message,
     };
-    setMessages((current) => [...current, userMessage]);
+    const assistantDraftId = `assistant-${Date.now()}`;
+    const assistantDraft: ChatMessage = {
+      id: assistantDraftId,
+      role: "assistant",
+      content: "",
+    };
+    setMessages((current) => [...current, userMessage, assistantDraft]);
 
     try {
-      const response = await sendChatMessage({
+      const request = {
         message,
         conversationId: conversationId || undefined,
         documentIds: selectedDocumentIds,
-      });
+      };
+
+      let streamedContent = "";
+      let response: Awaited<ReturnType<typeof sendChatMessage>>;
+      try {
+        response = await streamChatMessage(request, (content) => {
+          streamedContent += content;
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantDraftId
+                ? { ...item, content: streamedContent }
+                : item,
+            ),
+          );
+        });
+      } catch {
+        response = await sendChatMessage(request);
+      }
 
       setConversationId(response.conversationId);
       window.localStorage.setItem(
@@ -136,20 +160,27 @@ export default function ChatPage() {
         response.conversationId,
       );
       setSessionUsage(response.sessionTotalUsage);
-      setMessages((current) => [
-        ...current,
-        {
-          id: response.assistantMessageId,
-          role: "assistant",
-          content: response.answer,
-          usage: response.usage,
-          citations: response.citations,
-        },
-      ]);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === assistantDraftId
+            ? {
+                id: response.assistantMessageId,
+                role: "assistant",
+                content: response.answer,
+                usage: response.usage,
+                citations: response.citations,
+              }
+            : item,
+        ),
+      );
       void refreshConversations();
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "Chat failed.");
-      setMessages((current) => current.filter((item) => item.id !== userMessage.id));
+      setMessages((current) =>
+        current.filter(
+          (item) => item.id !== userMessage.id && item.id !== assistantDraftId,
+        ),
+      );
       setDraft(message);
     } finally {
       setIsSending(false);
@@ -295,11 +326,6 @@ export default function ChatPage() {
                   {messages.map((message) => (
                     <MessageBubble key={message.id} message={message} />
                   ))}
-                  {isSending ? (
-                    <div className="max-w-[80%] rounded-lg border border-line bg-surface px-4 py-3 text-sm text-muted">
-                      Thinking...
-                    </div>
-                  ) : null}
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -459,7 +485,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         {isUser ? (
           <p className="whitespace-pre-wrap leading-6">{message.content}</p>
         ) : (
-          <MarkdownContent content={message.content} />
+          <MarkdownContent content={message.content || "Thinking..."} />
         )}
         {message.usage ? (
           <div className="mt-3 border-t border-line pt-3">

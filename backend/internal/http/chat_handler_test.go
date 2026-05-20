@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mabius/knowledge-assistant/backend/internal/chat"
@@ -92,6 +93,38 @@ func TestChatRouteReturnsAnswerAndUsage(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestChatStreamRouteReturnsSSE(t *testing.T) {
+	app := NewServerWithDependencies(testConfig(), Dependencies{
+		AuthService: &fakeAuthService{},
+		ChatService: fakeChatService{
+			response: chat.Response{
+				Answer:             "Hello streaming",
+				ConversationID:     "conversation-1",
+				AssistantMessageID: "message-1",
+				MessageUsage:       chat.Usage{PromptTokens: 2, CompletionTokens: 3, TotalTokens: 5},
+				SessionTotalUsage:  chat.Usage{PromptTokens: 2, CompletionTokens: 3, TotalTokens: 5},
+			},
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/chat/stream", bytes.NewBufferString(`{"message":"hello"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer session-token")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	if contentType := resp.Header.Get("Content-Type"); !strings.Contains(contentType, "text/event-stream") {
+		t.Fatalf("expected event stream content type, got %q", contentType)
 	}
 }
 

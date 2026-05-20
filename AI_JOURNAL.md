@@ -127,3 +127,11 @@
 **AI Response:** Added backend endpoints to list and load conversations, included persisted messages and session token totals, and updated the frontend chat sidebar to load previous conversations.
 
 **My Adjustment:** Stored only the selected conversation ID in localStorage so reloads reopen the same conversation without duplicating chat state in the browser.
+
+## Session 17: Streaming chat responses
+
+**Prompt:** "Implement the next step: add streaming responses."
+
+**AI Response:** Added a protected SSE chat endpoint and updated the frontend chat client to read stream events, incrementally update the assistant message, and keep the existing non-streaming chat request as fallback.
+
+**My Adjustment:** Reused the existing chat service so persistence, token usage, citations, and non-streaming behavior stay consistent instead of introducing a separate streaming-only save path.
