@@ -32,6 +32,10 @@ services:
       AI_BASE_URL: ${AI_BASE_URL:?AI_BASE_URL is required}
       AI_API_KEY: ${AI_API_KEY:?AI_API_KEY is required}
       AI_MODEL: ${AI_MODEL:?AI_MODEL is required}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:?EMBEDDING_BASE_URL is required}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:?EMBEDDING_API_KEY is required}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:?EMBEDDING_MODEL is required}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:?EMBEDDING_DIMENSIONS is required}
     ports:
       - "${PORT:?PORT is required}:${PORT:?PORT is required}"
     volumes:

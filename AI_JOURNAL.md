@@ -79,3 +79,11 @@
 **AI Response:** Added `AI_PROVIDER` config, a Gemini generateContent client, Gemini token usage mapping, provider selection in the server, and tests for Gemini success/error responses.
 
 **My Adjustment:** Kept the chat service provider-agnostic so `/api/chat` response shape and database token tracking do not change when switching between OpenAI and Gemini.
+
+## Session 11: Embeddings and retrieval
+
+**Prompt:** "Add embeddings and document retrieval for RAG using Gemini embeddings with pgvector."
+
+**AI Response:** Added a Gemini embedContent client, embedding configuration, RAG indexing/retrieval service, pgvector repository methods, upload-time chunk embedding, and a protected retrieval endpoint for testing.
+
+**My Adjustment:** Set Gemini embeddings to 1536 dimensions to match the existing pgvector schema and kept context injection/citations for the next commit.
