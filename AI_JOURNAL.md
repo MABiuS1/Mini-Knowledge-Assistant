@@ -39,3 +39,11 @@
 **AI Response:** Created the frontend project configuration, placeholder app pages, global styles, typed API request helper, and Dockerfile for standalone Next.js builds.
 
 **My Adjustment:** Kept login, upload, and chat pages as placeholders so the scaffold commit stays separate from the authentication UI feature.
+
+## Session 6: Frontend login and route protection
+
+**Prompt:** "Implement the frontend login page, protected routes, session check, and logout flow against the Go Fiber auth API."
+
+**AI Response:** Added an auth API wrapper, React auth provider, login form, route guard, and authenticated app shell for the chat and upload pages.
+
+**My Adjustment:** Used client-side session checks against `/api/me` because the backend owns the httpOnly session cookie, and kept upload/chat content as placeholders for later feature commits.
