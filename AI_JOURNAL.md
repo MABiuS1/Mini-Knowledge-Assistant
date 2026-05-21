@@ -151,3 +151,19 @@
 **AI Response:** Added service healthchecks for backend and frontend, made frontend wait for a healthy backend, aligned the backend Docker image with the Go version, and tightened Docker build ignores.
 
 **My Adjustment:** Verified Compose syntax without printing environment values and deferred full `docker compose up --build` because Docker Desktop was not running in the local environment.
+
+## Session 20: README and architecture decisions
+
+**Prompt:** "Implement the next step: complete README and decisions."
+
+**AI Response:** Expanded README with setup, Docker and local run instructions, feature checklist, testing commands, API summary, architecture, and known issues. Rewrote DECISIONS around Go Fiber, Postgres + pgvector, and RAG/citation strategy.
+
+**My Adjustment:** Documented Gemini as the default provider and called out current limitations, including best-effort PDF extraction and non-provider-native streaming.
+
+## Session 21: Glass UI refresh
+
+**Prompt:** "Adjust every page to use a glass-style dark purple UI like the reference images, then refine it based on the MCP/Stitch direction and the later dashboard, login, history, document-management, and exact chat dashboard references."
+
+**AI Response:** Added shared glass, glow button, input, logo, file-card, progress, active navigation, drop-zone, and cosmic background utilities. Reworked the protected shell into one shared left-sidebar navigation used by both chat and documents, redesigned documents into a management view with upload drop zone, recent document table, and processing panels, then rebuilt the chat page with real conversation history injected into that shared sidebar and document selection in the chat composer.
+
+**My Adjustment:** Removed top navigation, analytics, settings, upgrade, and fake history items so the UI stays aligned with the assessment plan: login, document upload/list, document-scoped chat, citations, usage, and persisted conversation history. Treated the MCP request as the same design session rather than adding a separate journal entry.
