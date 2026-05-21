@@ -2,6 +2,12 @@
 
 Mini Knowledge Assistant for the Dev Trainee Assessment. The app lets an admin user upload PDF/TXT documents, parse them into chunks, embed those chunks, retrieve relevant context, and chat with an AI assistant using citations and token usage tracking.
 
+## Demo
+
+- Live demo: https://pleasant-solace-production.up.railway.app/login
+- Username: `admin`
+- Password: `admin123`
+
 ## Tech Stack
 
 - Frontend: Next.js, TypeScript, Tailwind CSS
