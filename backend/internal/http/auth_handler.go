@@ -64,7 +64,7 @@ func (h authHandler) login(c *fiber.Ctx) error {
 		Expires:  result.ExpiresAt,
 		HTTPOnly: true,
 		Secure:   h.cfg.CookieSecure,
-		SameSite: "Lax",
+		SameSite: sessionCookieSameSite(h.cfg),
 		Path:     "/",
 	})
 
@@ -143,8 +143,16 @@ func clearSessionCookie(c *fiber.Ctx, cfg config.Config) {
 		Value:    "",
 		HTTPOnly: true,
 		Secure:   cfg.CookieSecure,
-		SameSite: "Lax",
+		SameSite: sessionCookieSameSite(cfg),
 		Path:     "/",
 		MaxAge:   -1,
 	})
+}
+
+func sessionCookieSameSite(cfg config.Config) string {
+	if cfg.CookieSecure {
+		return "None"
+	}
+
+	return "Lax"
 }
