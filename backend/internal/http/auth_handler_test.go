@@ -80,6 +80,32 @@ func TestLoginRouteSuccess(t *testing.T) {
 	}
 }
 
+func TestLoginRouteSetsCrossSiteCookieInProduction(t *testing.T) {
+	cfg := testConfig()
+	cfg.AppEnv = "production"
+	cfg.CookieSecure = true
+	app := NewServerWithDependencies(cfg, Dependencies{
+		AuthService: &fakeAuthService{},
+	})
+
+	body := bytes.NewBufferString(`{"username":"admin","password":"admin123"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	cookie := resp.Header.Get("Set-Cookie")
+	if !strings.Contains(cookie, "SameSite=None") {
+		t.Fatalf("expected SameSite=None for production cookie, got %q", cookie)
+	}
+	if !strings.Contains(strings.ToLower(cookie), "secure") {
+		t.Fatalf("expected Secure for production cookie, got %q", cookie)
+	}
+}
+
 func TestLoginRouteInvalidCredentials(t *testing.T) {
 	app := NewServerWithDependencies(testConfig(), Dependencies{
 		AuthService: &fakeAuthService{},
