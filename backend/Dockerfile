@@ -13,6 +13,7 @@ FROM alpine:3.20
 WORKDIR /app
 
 RUN adduser -D -H appuser
+RUN mkdir -p /app/data/uploads && chown -R appuser:appuser /app/data
 
 COPY --from=build /bin/knowledge-api /app/knowledge-api
 COPY migrations /app/migrations
