@@ -22,7 +22,7 @@ function MarkdownBlockView({ block }: { block: MarkdownBlock }) {
   switch (block.type) {
     case "code":
       return (
-        <pre className="overflow-x-auto rounded-md bg-ink px-3 py-2 text-xs text-white">
+        <pre className="overflow-x-auto rounded-md border border-line bg-black/40 px-3 py-2 text-xs text-white">
           <code>{block.content}</code>
         </pre>
       );
@@ -184,7 +184,7 @@ function renderInlineMarkdown(content: string): ReactNode[] {
     if (token.startsWith("`")) {
       parts.push(
         <code
-          className="rounded bg-white px-1.5 py-0.5 text-xs text-ink"
+          className="rounded border border-line bg-white/20 px-1.5 py-0.5 text-xs text-ink"
           key={`${token}-${match.index}`}
         >
           {token.slice(1, -1)}

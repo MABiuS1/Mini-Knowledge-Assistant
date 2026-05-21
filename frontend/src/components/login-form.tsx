@@ -35,7 +35,7 @@ export function LoginForm() {
           value={username}
           onChange={(event) => setUsername(event.target.value)}
           autoComplete="username"
-          className="rounded-md border border-line px-3 py-2 text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-blue-100"
+          className="glass-input rounded-md px-3 py-2 text-base outline-none"
         />
       </label>
 
@@ -46,12 +46,12 @@ export function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
           type="password"
           autoComplete="current-password"
-          className="rounded-md border border-line px-3 py-2 text-base outline-none transition focus:border-brand focus:ring-2 focus:ring-blue-100"
+          className="glass-input rounded-md px-3 py-2 text-base outline-none"
         />
       </label>
 
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </div>
       ) : null}
@@ -59,11 +59,10 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="glow-button rounded-md px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isSubmitting ? "Signing in..." : "Sign in"}
       </button>
     </form>
   );
 }
-
