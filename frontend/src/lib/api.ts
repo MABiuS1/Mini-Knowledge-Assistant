@@ -50,6 +50,9 @@ export async function apiFormRequest<T>(
 
 export function apiURL(): string {
   const value = process.env.NEXT_PUBLIC_API_URL;
+  if (value === "same-origin") {
+    return "";
+  }
   if (!value) {
     throw new Error("NEXT_PUBLIC_API_URL is not configured");
   }
