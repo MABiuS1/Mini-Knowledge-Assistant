@@ -16,8 +16,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-surface px-6">
-        <div className="rounded-lg border border-line bg-white px-5 py-4 text-sm text-muted shadow-sm">
+      <main className="flex min-h-screen items-center justify-center px-6">
+        <div className="glass-panel rounded-lg px-5 py-4 text-sm text-muted">
           Checking session...
         </div>
       </main>
@@ -30,4 +30,3 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   return children;
 }
-

@@ -8,11 +8,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#172033",
-        muted: "#667085",
-        surface: "#f6f8fb",
-        line: "#d8dee8",
-        brand: "#2563eb",
+        ink: "#f5f7ff",
+        muted: "#a8b0d8",
+        surface: "#050713",
+        line: "rgba(190, 199, 255, 0.18)",
+        brand: "#7c5cff",
       },
     },
   },
@@ -20,4 +20,3 @@ const config: Config = {
 };
 
 export default config;
-
