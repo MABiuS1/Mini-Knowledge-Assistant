@@ -1,62 +1,82 @@
 # Architecture Decisions
 
-## Decision 1: Use Go Fiber as a separate backend
+## Go Fiber Backend
 
 ### Context
 
-The assessment allows Next.js or Nuxt.js API routes, but the implementation requirement for this project is to use Go Fiber for the backend.
+The assessment can be implemented with framework API routes, but this project uses Go Fiber as a dedicated backend. The backend has to handle authentication, file upload validation, document parsing, embeddings, retrieval, chat orchestration, streaming, and persistence.
+
+### Decision
+
+Use a standalone Go Fiber service behind `/api/*`, with Next.js kept as the frontend application.
+
+### Why
+
+Go Fiber gives the backend a clear boundary and keeps application rules out of React components. It also makes backend behavior easier to test with service tests and Fiber route tests. This structure is useful for the assessment because API responsibilities are explicit:
+
+- Auth and session cookies live in the backend.
+- Upload limits and file validation are enforced server-side.
+- RAG retrieval and AI provider calls are not exposed directly to the browser.
+- Token usage and conversation persistence are handled in one place.
 
 ### Alternatives Considered
 
-- Next.js API routes
-- Nuxt server routes
-- Go Fiber as a standalone API
-
-### Why Go Fiber
-
-Go Fiber gives the backend a clear boundary for authentication, uploads, document processing, RAG, and OpenAI orchestration. This makes the system easier to explain in review and keeps frontend code focused on user experience.
+- Next.js API routes only
+- A single full-stack Next.js app
+- Go Fiber as a separate service
 
 ### Trade-offs
 
-The app needs an extra service in Docker Compose and explicit CORS/cookie handling between frontend and backend.
+The separate backend adds CORS, cookie, and Docker Compose coordination. It also means local development needs both frontend and backend processes. The trade-off is acceptable because the backend has enough responsibilities to justify a clear service boundary.
 
-## Decision 2: Use PostgreSQL with pgvector
+## Postgres + pgvector
 
 ### Context
 
-The app needs relational data for users, documents, conversations, and usage, plus vector search for RAG.
+The app needs relational data for users, sessions, documents, chunks, conversations, messages, and usage events. It also needs vector similarity search for RAG retrieval.
+
+### Decision
+
+Use PostgreSQL as the primary database and pgvector for document chunk embeddings.
+
+### Why
+
+Postgres keeps the core application data model simple and reliable. pgvector avoids introducing a separate vector database for a small assessment project while still supporting cosine similarity search over embeddings. Docker Compose can start one database service with migrations and the required extension.
 
 ### Alternatives Considered
 
-- SQLite plus Qdrant
+- SQLite plus a vector service
 - PostgreSQL plus Qdrant
+- PostgreSQL plus Pinecone or another hosted vector database
 - PostgreSQL plus pgvector
 
-### Why PostgreSQL + pgvector
-
-PostgreSQL with pgvector keeps the data model in one database while still supporting vector similarity search. It reduces operational complexity for a take-home project and works well with Docker Compose.
-
 ### Trade-offs
 
-Dedicated vector databases may offer more advanced retrieval features, but pgvector is enough for the project scope.
+pgvector is simpler to operate but has fewer retrieval features than a dedicated vector database. For this scope, simple top-k chunk retrieval is enough. If the corpus became large, the next improvements would be better indexing strategy, filtering, reranking, and observability around retrieval quality.
 
-## Decision 3: Use RAG with citations
+## RAG And Citation Strategy
 
 ### Context
 
-The assessment rewards answering questions from uploaded documents and showing where the answer came from.
+The assistant should answer questions from uploaded documents and show where the answer came from. Sending entire documents to the model is not reliable once files become large, and it also wastes tokens.
+
+### Decision
+
+Parse documents into overlapping text chunks, embed each chunk, retrieve the most relevant chunks for a user query, inject those chunks into the prompt, and return citation metadata for the retrieved chunks.
+
+### Why
+
+Chunk retrieval keeps prompts smaller and gives the model focused context. Citations make answers easier to verify and are useful for assessment review because the response can point back to document, chunk, and snippet metadata.
+
+The current prompt strategy is conservative: when document context is provided, the model is instructed to answer from that context and to say when the context is insufficient instead of guessing.
 
 ### Alternatives Considered
 
-- Send the whole document to the model
+- Send the full uploaded document to the model
 - Keyword search only
-- Chunking, embeddings, retrieval, and citations
-
-### Why RAG
-
-Chunking and retrieval handles larger files better than sending the entire document to the model. Citations also make answers easier to verify and improve the grading signal.
+- Embedding retrieval without citations
+- RAG with citations
 
 ### Trade-offs
 
-RAG adds complexity around chunking, embeddings, and retrieval quality. The implementation will keep the retrieval pipeline simple and document known limitations.
-
+RAG quality depends on text extraction, chunk size, overlap, embedding model quality, and retrieval ranking. Current citations are based on retrieved chunks, not exact sentence-level attribution. This is sufficient for a practical first version, but future improvements could include reranking, citation IDs inserted into the answer text, and preserving citation metadata in conversation history.
