@@ -23,6 +23,9 @@ func NewServer(cfg config.Config) *fiber.App {
 	if err != nil {
 		panic(err)
 	}
+	if err := repository.RunMigrations(context.Background(), db, cfg.MigrationsDir); err != nil {
+		panic(err)
+	}
 
 	authStore := repository.NewAuthStore(db)
 	authService := authAdapter{service: auth.NewService(authStore, cfg.SessionTTL)}

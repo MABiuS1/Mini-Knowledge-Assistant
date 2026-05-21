@@ -15,6 +15,7 @@ WORKDIR /app
 RUN adduser -D -H appuser
 
 COPY --from=build /bin/knowledge-api /app/knowledge-api
+COPY migrations /app/migrations
 
 ENV PORT=8080
 EXPOSE 8080

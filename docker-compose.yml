@@ -24,6 +24,7 @@ services:
       APP_ENV: ${APP_ENV:?APP_ENV is required}
       PORT: ${PORT:?PORT is required}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      MIGRATIONS_DIR: ${MIGRATIONS_DIR:?MIGRATIONS_DIR is required}
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       UPLOAD_DIR: ${UPLOAD_DIR:?UPLOAD_DIR is required}
       MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:?MAX_UPLOAD_BYTES is required}

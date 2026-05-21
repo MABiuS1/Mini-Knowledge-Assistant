@@ -12,6 +12,7 @@ type Config struct {
 	Port                string
 	FrontendURL         string
 	DatabaseURL         string
+	MigrationsDir       string
 	UploadDir           string
 	MaxUploadBytes      int64
 	AIProvider          string
@@ -35,6 +36,7 @@ func Load() Config {
 		Port:                mustGetEnv("PORT"),
 		FrontendURL:         mustGetEnv("FRONTEND_URL"),
 		DatabaseURL:         mustGetEnv("DATABASE_URL"),
+		MigrationsDir:       mustGetEnv("MIGRATIONS_DIR"),
 		UploadDir:           mustGetEnv("UPLOAD_DIR"),
 		MaxUploadBytes:      mustGetEnvInt64("MAX_UPLOAD_BYTES"),
 		AIProvider:          mustGetEnv("AI_PROVIDER"),
